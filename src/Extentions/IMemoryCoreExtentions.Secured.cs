@@ -27,8 +27,17 @@ public static class IMemoryCoreExtentionsSecured
     public static bool ExistsSecured(this IMemoryCore cache, Guid key) =>
         cache.Exists(SECURED_PREFIX_KEY + key);
 
-    public static bool TryGetSecured<T>(this IMemoryCore cache, Guid key, out T? item) =>
-        cache.TryGet(SECURED_PREFIX_KEY + key, out item);
+    public static bool TryGetSecured<T>(this IMemoryCore cache, Guid key, out T? item)
+    {
+        if (cache.TryGet(SECURED_PREFIX_KEY + key, out var outItem))
+        {
+            item = (T?)outItem;
+            return true;
+        }
+
+        item = default;
+        return false;
+    }
 
     public static void RemoveSecured(this IMemoryCore cache, Guid key) =>
         cache.Remove(SECURED_PREFIX_KEY + key);

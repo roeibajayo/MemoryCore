@@ -4,8 +4,8 @@ namespace MemoryCore;
 
 public interface IMemoryCore : IMemoryCache
 {
-    void Add<T>(string key, T value, TimeSpan absoluteExpiration, params string[] tags);
-    void AddSliding<T>(string key, T value, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null, params string[] tags);
+    void Add(string key, object value, TimeSpan absoluteExpiration, params string[] tags);
+    void AddSliding(string key, object value, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null, params string[] tags);
 
     bool Exists(string key);
     bool ExistsTag(string tag);
@@ -16,8 +16,7 @@ public interface IMemoryCore : IMemoryCache
     void Remove(string key);
     void RemoveTag(string tag);
 
-
-    bool TryGet<T>(string key, out T? item);
+    bool TryGet(string key, out object? item);
 
     T? TryGetOrSet<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
         bool allowDefault = false, bool forceSet = false, params string[] tags);

@@ -12,7 +12,7 @@ public static class IMemoryCoreExtentions
         cache.AddSliding(key, value, TimeSpan.FromMinutes(minutes), absoluteExpiration, tags);
 
     public static T? Get<T>(this IMemoryCore cache, string key) =>
-        cache.TryGet(key, out T item) ? item : default;
+        cache.TryGet(key, out var item) ? (T?)item : default;
 
     public static void Remove(this IMemoryCore cache, Regex pattren)
     {

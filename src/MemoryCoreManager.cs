@@ -1,5 +1,4 @@
 ﻿using MemoryCore.KeyedLocker;
-using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
 
 namespace MemoryCore;
@@ -20,7 +19,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         timer = new((state) => ClearExpired(), null, clearInterval, clearInterval);
     }
 
-    public void Add<T>(string key, T value, TimeSpan absoluteExpiration, params string[] tags)
+    public void Add(string key, object value, TimeSpan absoluteExpiration, params string[] tags)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -36,7 +35,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         };
     }
 
-    public void AddSliding<T>(string key, T value, TimeSpan duration, TimeSpan? absoluteExpiration = null, params string[] tags)
+    public void AddSliding(string key, object value, TimeSpan duration, TimeSpan? absoluteExpiration = null, params string[] tags)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -84,9 +83,6 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
 
     public bool TryGet<T>(string key, out T? item)
     {
-        if (string.IsNullOrEmpty(key))
-            throw new ArgumentNullException(nameof(key));
-
         if (TryGet(key, out object value))
         {
             item = (T?)value;
@@ -96,8 +92,11 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         item = default;
         return false;
     }
-    internal bool TryGet(string key, out object? item)
+    public bool TryGet(string key, out object? item)
     {
+        if (string.IsNullOrEmpty(key))
+            throw new ArgumentNullException(nameof(key));
+
         if (entries.TryGetValue(key, out var entry))
         {
             var now = dateTimeOffsetProvider.Now;
@@ -260,26 +259,4 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
 
     public void Clear() =>
         entries.Clear();
-
-
-    //IMemoryCache:
-    public bool TryGetValue(object key, out object? value)
-    {
-        return TryGet(key.ToString(), out value);
-    }
-    public ICacheEntry CreateEntry(object key)
-    {
-        return new MemoryEntry
-        {
-            Key = key.ToString()
-        };
-    }
-    public void Remove(object key)
-    {
-        Remove(key.ToString());
-    }
-    public void Dispose()
-    {
-        timer.Dispose();
-    }
 }
