@@ -13,6 +13,17 @@ public static class IMemoryCoreExtentions
 
     public static T? Get<T>(this IMemoryCore cache, string key) =>
         cache.TryGet(key, out var item) ? (T?)item : default;
+    public static bool TryGet<T>(this IMemoryCore cache, string key, out T? value)
+    {
+        if(cache.TryGet(key, out var item))
+        {
+            value = (T?)item;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
 
     public static void Remove(this IMemoryCore cache, Regex pattren)
     {
