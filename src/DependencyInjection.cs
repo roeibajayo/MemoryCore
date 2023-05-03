@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MemoryCore;
 public static class DependencyInjection
@@ -7,6 +8,7 @@ public static class DependencyInjection
         StringComparison keysComparison = StringComparison.Ordinal)
     {
         services.AddSingleton<IMemoryCore>(new MemoryCoreManager(keysComparison));
+        services.AddSingleton<IMemoryCache>(s => s.GetService<IMemoryCore>()!);
         services.AddHostedService<MemoryCoreManagerCleaner>();
         return services;
     }
