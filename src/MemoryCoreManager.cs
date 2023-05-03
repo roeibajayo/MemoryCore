@@ -64,7 +64,6 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
 
     public IEnumerable<string> GetKeys()
     {
-        var entries = this.entries.ToArray();
         var now = dateTimeOffsetProvider.Now;
         foreach (var entry in entries)
         {
@@ -245,16 +244,12 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
     internal void ClearExpired()
     {
         var now = dateTimeOffsetProvider.Now;
-        var removedKeys = new List<string>();
 
         foreach (var entry in entries.Values)
         {
             if (entry.IsExpired(now))
-                removedKeys.Add(entry.Key);
+                entries.TryRemove(entry.Key, out _);
         }
-
-        foreach (var key in removedKeys)
-            entries.TryRemove(key, out _);
     }
 
     public void Clear() =>

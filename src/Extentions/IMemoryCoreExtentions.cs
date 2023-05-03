@@ -18,7 +18,7 @@ public static class IMemoryCoreExtentions
     {
         ArgumentNullException.ThrowIfNull(nameof(pattren));
 
-        var keys = cache.GetKeys().Where(key => pattren.IsMatch(key)).ToArray();
+        var keys = cache.GetKeys().Where(key => pattren.IsMatch(key));
         foreach (var key in keys)
             cache.Remove(key);
     }
@@ -33,7 +33,7 @@ public static class IMemoryCoreExtentions
     {
         ArgumentNullException.ThrowIfNull(nameof(prefix));
 
-        var keys = cache.GetKeys().Where(key => key.StartsWith(prefix)).ToArray();
+        var keys = cache.GetKeys().Where(key => key.StartsWith(prefix));
         foreach (var key in keys)
             cache.Remove(key);
     }

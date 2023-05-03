@@ -6,8 +6,7 @@ internal partial class MemoryCoreManager : IMemoryCore
     {
         return entries.Values
             .SelectMany(x => x.Tags)
-            .Distinct()
-            .ToArray();
+            .Distinct();
     }
 
     public bool ExistsTag(string tag)
@@ -20,8 +19,7 @@ internal partial class MemoryCoreManager : IMemoryCore
     {
         var keys = entries.Values
             .Where(x => x.Tags.Contains(tag, entries.Comparer))
-            .Select(x => x.Key)
-            .ToArray();
+            .Select(x => x.Key);
 
         foreach (var key in keys)
             entries.TryRemove(key, out _);

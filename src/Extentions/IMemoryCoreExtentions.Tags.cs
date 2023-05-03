@@ -8,7 +8,7 @@ public static class IMemoryCoreExtentionsTags
     {
         ArgumentNullException.ThrowIfNull(nameof(pattren));
 
-        var keys = cache.GetTags().Where(tag => pattren.IsMatch(tag)).ToArray();
+        var keys = cache.GetTags().Where(tag => pattren.IsMatch(tag));
         foreach (var key in keys)
             cache.RemoveTag(key);
     }
@@ -23,7 +23,7 @@ public static class IMemoryCoreExtentionsTags
     {
         ArgumentNullException.ThrowIfNull(nameof(prefix));
 
-        var tags = cache.GetTags().Where(tag => tag.StartsWith(prefix)).ToArray();
+        var tags = cache.GetTags().Where(tag => tag.StartsWith(prefix));
         foreach (var tag in tags)
             cache.RemoveTag(tag);
     }
