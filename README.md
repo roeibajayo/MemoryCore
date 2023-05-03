@@ -22,14 +22,14 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 |             Method |      Mean |    Error |    StdDev | Allocated |
 |------------------- |----------:|---------:|----------:|----------:|
-|     MemoryCore_Add |  63.86 ns | 1.259 ns |  3.651 ns |     112 B |
-|    MemoryCache_Add | 343.80 ns | 6.870 ns | 15.080 ns |     272 B |
+|     MemoryCore_Add |  51.19 ns | 1.044 ns |  2.356 ns |      72 B |
+|    MemoryCache_Add | 338.31 ns | 6.778 ns | 15.710 ns |     272 B |
 |                                                                   |
-|     MemoryCore_Get |  33.91 ns | 0.699 ns |  0.883 ns |         - |
-|    MemoryCache_Get |  91.22 ns | 1.743 ns |  2.007 ns |      32 B |
+|     MemoryCore_Get |  22.06 ns | 0.462 ns |  0.901 ns |         - |
+|    MemoryCache_Get |  90.27 ns | 1.673 ns |  3.380 ns |      32 B |
 |                                                                   |
-|  MemoryCore_Exists |  26.05 ns | 0.536 ns |  0.475 ns |         - |
-| MemoryCache_Exists | 353.29 ns | 7.055 ns | 15.187 ns |     752 B |
+|  MemoryCore_Exists |  22.38 ns | 0.466 ns |  0.622 ns |         - |
+| MemoryCache_Exists | 348.40 ns | 6.873 ns | 14.194 ns |     752 B |
 
 ## Install & Registering:
 
