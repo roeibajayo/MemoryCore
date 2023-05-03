@@ -22,7 +22,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
             throw new ArgumentNullException(nameof(key));
 
         var now = dateTimeOffsetProvider.Now;
-        var expiration = now + absoluteExpiration;
+        var expiration = now + (long)absoluteExpiration.TotalMilliseconds;
         _entries[key] = new MemoryEntry
         {
             Key = key,
@@ -38,16 +38,17 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
             throw new ArgumentNullException(nameof(key));
 
         var now = dateTimeOffsetProvider.Now;
-        var expiration = absoluteExpiration is null ? default : (now + absoluteExpiration);
-        _entries[key] = new MemoryEntry
+        var expiration = absoluteExpiration is null ? default : (now + (long)absoluteExpiration.Value.TotalMilliseconds);
+        var entry = new MemoryEntry
         {
             Key = key,
             Value = value,
             Tags = tags,
             AbsoluteExpiration = expiration,
-            SlidingExpiration = duration,
-            LastTouch = now
+            SlidingExpiration = (long)duration.TotalMilliseconds
         };
+        _entries[key] = entry;
+        entry.Touch(now);
     }
 
     public bool Exists(string key)
@@ -82,7 +83,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
-        if (TryGet(key, out object? value))
+        if (TryGet(key, out object value))
         {
             item = (T?)value;
             return true;
@@ -95,8 +96,10 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
     {
         if (_entries.TryGetValue(key, out var entry))
         {
+            //20ns:
             var now = dateTimeOffsetProvider.Now;
 
+            //10ns:
             if (entry.IsExpired(now))
             {
                 Remove(key);
@@ -105,6 +108,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
             }
 
             item = entry.Value;
+            //5ns:
             entry.Touch(now);
             return true;
         }

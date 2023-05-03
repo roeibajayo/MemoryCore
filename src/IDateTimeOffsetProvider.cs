@@ -1,20 +1,20 @@
-﻿namespace MemoryCore;
+﻿using MemoryCore.Utils;
+
+namespace MemoryCore;
 
 internal interface IDateTimeOffsetProvider
 {
-    public DateTimeOffset Now { get; }
+    public long Now { get; }
 }
 
 internal sealed class DateTimeOffsetProvider : IDateTimeOffsetProvider
 {
     public DateTimeOffsetProvider() { }
-    public DateTimeOffsetProvider(TimeSpan fromNow) : this(DateTimeOffset.UtcNow + fromNow) { }
-    public DateTimeOffsetProvider(DateTimeOffset now)
-    {
-        this.now = now;
+    public DateTimeOffsetProvider(TimeSpan fromNow) { 
+        now = DateTimeUtils.Now + (long)fromNow.TotalMilliseconds;
     }
 
-    private readonly DateTimeOffset? now;
-    public DateTimeOffset Now =>
-        now ?? DateTimeOffset.UtcNow;
+    private readonly long? now;
+    public long Now =>
+        now ?? DateTimeUtils.Now;
 }
