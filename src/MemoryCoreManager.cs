@@ -1,4 +1,5 @@
 ﻿using MemoryCore.KeyedLocker;
+using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
 
 namespace MemoryCore;
@@ -27,7 +28,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
             Key = key,
             Value = value,
             Tags = tags,
-            Date = expiration
+            AbsoluteExpiration = expiration
         };
     }
 
@@ -43,7 +44,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
             Key = key,
             Value = value,
             Tags = tags,
-            Date = expiration,
+            AbsoluteExpiration = expiration,
             SlidingExpiration = duration,
             LastTouch = now
         };
@@ -255,4 +256,25 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
     public void Clear() =>
         _entries.Clear();
 
+
+    //IMemoryCache:
+    public bool TryGetValue(object key, out object? value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ICacheEntry CreateEntry(object key)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Remove(object key)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
+    }
 }

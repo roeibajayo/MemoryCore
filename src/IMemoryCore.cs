@@ -1,6 +1,8 @@
-﻿namespace MemoryCore;
+﻿using Microsoft.Extensions.Caching.Memory;
 
-public interface IMemoryCore
+namespace MemoryCore;
+
+public interface IMemoryCore : IMemoryCache
 {
     void Add<T>(string key, T value, TimeSpan absoluteExpiration, params string[] tags);
     void AddSliding<T>(string key, T value, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null, params string[] tags);
