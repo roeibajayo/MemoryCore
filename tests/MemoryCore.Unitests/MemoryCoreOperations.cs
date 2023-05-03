@@ -245,33 +245,21 @@ public class MemoryCoreOperations
         Assert.Equal(cache.Get<string>(key), value);
     }
 
-
     [Fact]
-    public void ComplexSenario()
+    public void ClearExpired_NoItems()
     {
+        //Arrange
+        var key = "r1";
+        var value = "ok";
+        var minutes = 5;
         var cache = new MemoryCoreManager();
 
-        cache.Add("r1", "ok", 5);
-        Assert.True(cache.Exists("r1"));
-        Assert.True(!cache.Exists("r2"));
-        Assert.True(cache.GetKeys().Count() == 1);
-        Assert.True(cache.GetKeys().First() == "r1");
+        //Act
+        cache.Add(key, value, minutes);
+        cache.dateTimeOffsetProvider = new DateTimeOffsetProvider(TimeSpan.FromMinutes(minutes + 1));
+        cache.ClearExpired();
 
-        var sec = cache.AddSecured("ok2", 5);
-        Assert.True(cache.TryGetSecured<string>(sec, out _));
-        Assert.True(!cache.TryGetSecured<string>(Guid.NewGuid(), out _));
-
-        cache.Remove("r1");
-        Assert.True(!cache.Exists("r1"));
-
-        cache.RemoveSecured(sec);
-        Assert.True(cache.GetKeys().Count() == 0);
-
-        cache.Add("r1", "ok", 5);
-        cache.Add("r2", "ok", 5);
-        Assert.True(cache.GetKeys().Count() == 2);
-
-        cache.RemoveByPrefix("r");
-        Assert.True(cache.GetKeys().Count() == 0);
+        //Assert
+        Assert.Empty(cache.entries);
     }
 }
