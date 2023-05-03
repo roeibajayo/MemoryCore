@@ -18,7 +18,7 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 ✔ Developers friendly ❤️ Easy to use.
 
-## Benchmarks MemoryCore (1.0.0) vs System.Runtime.Caching (7.0.0):
+## Benchmarks MemoryCore (1.1.0) vs System.Runtime.Caching (7.0.0):
 
 |             Method |      Mean |    Error |    StdDev | Allocated |
 |------------------- |----------:|---------:|----------:|----------:|
