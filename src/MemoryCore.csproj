@@ -6,6 +6,16 @@
     <Nullable>enable</Nullable>
     <LangVersion>10</LangVersion>
     <Version>1.1.0</Version>
+    <Authors>roeibajayo@gmail.com</Authors>
+    <PackageId>MemoryCore</PackageId>
+    <Company>RoeiBajayo</Company>
+    <Title>MemoryCore</Title>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/roeibajayo/MemoryCore</PackageProjectUrl>
+    <Description>High-performance yet easy to use memory manager implementation in .NET.</Description>
+    <RepositoryUrl>https://github.com/roeibajayo/MemoryCore</RepositoryUrl>
+    <PackageTags>memory cache</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
