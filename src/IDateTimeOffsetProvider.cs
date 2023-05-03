@@ -7,12 +7,14 @@ internal interface IDateTimeOffsetProvider
 
 internal sealed class DateTimeOffsetProvider : IDateTimeOffsetProvider
 {
-    public DateTimeOffsetProvider() : this(DateTimeOffset.UtcNow) { }
+    public DateTimeOffsetProvider() { }
     public DateTimeOffsetProvider(TimeSpan fromNow) : this(DateTimeOffset.UtcNow + fromNow) { }
     public DateTimeOffsetProvider(DateTimeOffset now)
     {
-        Now = now;
+        this.now = now;
     }
 
-    public DateTimeOffset Now { get; }
+    private readonly DateTimeOffset? now;
+    public DateTimeOffset Now =>
+        now ?? DateTimeOffset.UtcNow;
 }
