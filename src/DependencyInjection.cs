@@ -9,7 +9,6 @@ public static class DependencyInjection
     {
         services.AddSingleton<IMemoryCore>(new MemoryCoreManager(keysComparison));
         services.AddSingleton<IMemoryCache>(s => s.GetService<IMemoryCore>()!);
-        services.AddHostedService<MemoryCoreManagerCleaner>();
         return services;
     }
 }

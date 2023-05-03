@@ -4,7 +4,7 @@ internal partial class MemoryCoreManager : IMemoryCore
 {
     public IEnumerable<string> GetTags()
     {
-        return _entries.Values
+        return entries.Values
             .SelectMany(x => x.Tags)
             .Distinct()
             .ToArray();
@@ -12,18 +12,18 @@ internal partial class MemoryCoreManager : IMemoryCore
 
     public bool ExistsTag(string tag)
     {
-        return _entries.Values
-            .Any(x => x.IsTagged(tag, _entries.Comparer));
+        return entries.Values
+            .Any(x => x.IsTagged(tag, entries.Comparer));
     }
 
     public void RemoveTag(string tag)
     {
-        var keys = _entries.Values
-            .Where(x => x.Tags.Contains(tag, _entries.Comparer))
+        var keys = entries.Values
+            .Where(x => x.Tags.Contains(tag, entries.Comparer))
             .Select(x => x.Key)
             .ToArray();
 
         foreach (var key in keys)
-            _entries.TryRemove(key, out _);
+            entries.TryRemove(key, out _);
     }
 }

@@ -6,14 +6,18 @@ namespace MemoryCore;
 
 internal sealed partial class MemoryCoreManager : IMemoryCore
 {
-    internal readonly ConcurrentDictionary<string, MemoryEntry> _entries;
+    private const int clearInterval = 20 * 1000;
+
+    internal readonly ConcurrentDictionary<string, MemoryEntry> entries;
     internal readonly KeyedLocker<string> keyedLocker = new();
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
+    internal readonly Timer timer;
 
     public MemoryCoreManager() : this(StringComparison.Ordinal) { }
     public MemoryCoreManager(StringComparison stringComparison)
     {
-        _entries = new(comparer: StringComparer.FromComparison(stringComparison));
+        entries = new(comparer: StringComparer.FromComparison(stringComparison));
+        timer = new((state) => ClearExpired(), null, clearInterval, clearInterval);
     }
 
     public void Add<T>(string key, T value, TimeSpan absoluteExpiration, params string[] tags)
@@ -23,7 +27,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
 
         var now = dateTimeOffsetProvider.Now;
         var expiration = now + (long)absoluteExpiration.TotalMilliseconds;
-        _entries[key] = new MemoryEntry
+        entries[key] = new MemoryEntry
         {
             Key = key,
             Value = value,
@@ -47,7 +51,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
             AbsoluteExpiration = expiration,
             SlidingExpiration = (long)duration.TotalMilliseconds
         };
-        _entries[key] = entry;
+        entries[key] = entry;
         entry.Touch(now);
     }
 
@@ -61,7 +65,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
 
     public IEnumerable<string> GetKeys()
     {
-        var entries = _entries.ToArray();
+        var entries = this.entries.ToArray();
         var now = dateTimeOffsetProvider.Now;
         foreach (var entry in entries)
         {
@@ -75,7 +79,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
-        _entries.TryRemove(key, out _);
+        entries.TryRemove(key, out _);
     }
 
     public bool TryGet<T>(string key, out T? item)
@@ -94,12 +98,10 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
     }
     internal bool TryGet(string key, out object? item)
     {
-        if (_entries.TryGetValue(key, out var entry))
+        if (entries.TryGetValue(key, out var entry))
         {
-            //20ns:
             var now = dateTimeOffsetProvider.Now;
 
-            //10ns:
             if (entry.IsExpired(now))
             {
                 Remove(key);
@@ -108,7 +110,6 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
             }
 
             item = entry.Value;
-            //5ns:
             entry.Touch(now);
             return true;
         }
@@ -240,45 +241,45 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
     }
 
     public int Count() =>
-        _entries.Count;
+        entries.Count;
 
     internal void ClearExpired()
     {
         var now = dateTimeOffsetProvider.Now;
         var removedKeys = new List<string>();
 
-        foreach (var entry in _entries.Values)
+        foreach (var entry in entries.Values)
         {
             if (entry.IsExpired(now))
                 removedKeys.Add(entry.Key);
         }
 
         foreach (var key in removedKeys)
-            _entries.TryRemove(key, out _);
+            entries.TryRemove(key, out _);
     }
 
     public void Clear() =>
-        _entries.Clear();
+        entries.Clear();
 
 
     //IMemoryCache:
     public bool TryGetValue(object key, out object? value)
     {
-        throw new NotImplementedException();
+        return TryGet(key.ToString(), out value);
     }
-
     public ICacheEntry CreateEntry(object key)
     {
-        throw new NotImplementedException();
+        return new MemoryEntry
+        {
+            Key = key.ToString()
+        };
     }
-
     public void Remove(object key)
     {
-        throw new NotImplementedException();
+        Remove(key.ToString());
     }
-
     public void Dispose()
     {
-        throw new NotImplementedException();
+        timer.Dispose();
     }
 }

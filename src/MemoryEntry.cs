@@ -11,11 +11,10 @@ internal sealed class MemoryEntry : ICacheEntry
     internal string[] Tags { get; init; }
     public long? AbsoluteExpiration { get; set; }
     public long? SlidingExpiration { get; set; }
-    private bool _disposed;
 
     internal bool IsExpired(long now)
     {
-        return _disposed || AbsoluteExpiration.Value < now;
+        return AbsoluteExpiration is null || AbsoluteExpiration.Value < now;
     }
 
     internal bool IsTagged(string tag, IEqualityComparer<string> comparer)
@@ -68,7 +67,7 @@ internal sealed class MemoryEntry : ICacheEntry
 
     public void Dispose()
     {
-        _disposed = true;
+        AbsoluteExpiration = null;
         Value = default;
     }
 }
