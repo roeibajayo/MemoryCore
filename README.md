@@ -12,9 +12,11 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 ✔ Support for IMemoryCahce intrerface.
 
+✔ Dependency Injection ready.
+
 ✔ Support for tags.
 
-✔ Support for secured keys.
+✔ Support for keyless items.
 
 ✔ Developers friendly ❤️ Easy to use.
 
@@ -40,11 +42,17 @@ Install [MemoryCore with NuGet](https://www.nuget.org/packages/MemoryCore):
 Or via the .NET Core command line interface:
 
     dotnet add package MemoryCore
-
+    
 then register the required services easly:
 
 ```csharp
 services.AddMemoryCore();
+```
+
+or create an instance:
+
+```csharp
+using var cache = new MemoryCoreManager();
 ```
 
 ## Example of use:

@@ -2,7 +2,7 @@
 
 namespace MemoryCore;
 
-internal sealed partial class MemoryCoreManager : IMemoryCore
+public sealed partial class MemoryCoreManager : IMemoryCore
 {
     public bool TryGetValue(object key, out object? value)
     {
@@ -21,6 +21,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
     }
     public void Dispose()
     {
+        Clear();
         timer.Dispose();
     }
 }

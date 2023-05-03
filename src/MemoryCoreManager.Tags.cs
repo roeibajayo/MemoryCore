@@ -1,7 +1,10 @@
 ﻿namespace MemoryCore;
 
-internal partial class MemoryCoreManager : IMemoryCore
+public partial class MemoryCoreManager : IMemoryCore
 {
+    /// <summary>
+    /// Get all tags in the cache.
+    /// </summary>
     public IEnumerable<string> GetTags()
     {
         return entries.Values
@@ -9,12 +12,20 @@ internal partial class MemoryCoreManager : IMemoryCore
             .Distinct();
     }
 
+    /// <summary>
+    /// Check if a tag exists in the cache.
+    /// </summary>
+    /// <param name="tag"></param>
+    /// <returns>True if the tag exists, false otherwise.</returns>
     public bool ExistsTag(string tag)
     {
         return entries.Values
             .Any(x => x.IsTagged(tag, entries.Comparer));
     }
 
+    /// <summary>
+    /// Remove all items with a specific tag from the cache.
+    /// </summary>
     public void RemoveTag(string tag)
     {
         var keys = entries.Values
