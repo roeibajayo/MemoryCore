@@ -28,5 +28,5 @@ public interface IMemoryCore
         bool allowDefault = false, bool forceSet = false, params string[] tags);
 
     int Count();
-    void Clean();
+    void Clear();
 }

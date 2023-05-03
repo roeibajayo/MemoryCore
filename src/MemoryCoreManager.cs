@@ -3,20 +3,14 @@ using System.Collections.Concurrent;
 
 namespace MemoryCore;
 
-internal sealed partial class MemoryManager : IMemoryCore, IDisposable
+internal sealed partial class MemoryCoreManager : IMemoryCore
 {
     internal readonly ConcurrentDictionary<string, MemoryEntry> _entries;
-    internal readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(60));
-    internal readonly CancellationTokenSource _cts = new();
-    internal readonly CancellationToken _token;
     internal readonly KeyedLocker<string> keyedLocker = new();
 
-    public MemoryManager(StringComparison stringComparison = StringComparison.Ordinal)
+    public MemoryCoreManager(StringComparison stringComparison = StringComparison.Ordinal)
     {
         _entries = new(comparer: StringComparer.FromComparison(stringComparison));
-        _token = _cts.Token;
-
-        StartCleanJob();
     }
 
     public void Add<T>(string key, T value, TimeSpan absoluteExpiration, params string[] tags)
@@ -31,8 +25,7 @@ internal sealed partial class MemoryManager : IMemoryCore, IDisposable
             Key = key,
             Value = value,
             Tags = tags,
-            Date = expiration,
-            Touch = now
+            Date = expiration
         };
     }
 
@@ -42,7 +35,7 @@ internal sealed partial class MemoryManager : IMemoryCore, IDisposable
             throw new ArgumentNullException(nameof(key));
 
         var now = DateTimeOffset.Now;
-        var expiration = absoluteExpiration is null ? default : (DateTimeOffset.Now + absoluteExpiration);
+        var expiration = absoluteExpiration is null ? default : (now + absoluteExpiration);
         _entries[key] = new MemoryEntry
         {
             Key = key,
@@ -50,7 +43,7 @@ internal sealed partial class MemoryManager : IMemoryCore, IDisposable
             Tags = tags,
             Date = expiration,
             SlidingExpiration = duration,
-            Touch = now
+            LastTouch = now
         };
     }
 
@@ -64,7 +57,16 @@ internal sealed partial class MemoryManager : IMemoryCore, IDisposable
 
     public IEnumerable<string> GetKeys()
     {
-        return _entries.Keys;
+        var entries = _entries.ToArray();
+        foreach (var entry in entries)
+        {
+            if (entry.Value.IsExpired())
+            {
+                Remove(entry.Key);
+                continue;
+            }
+            yield return entry.Key;
+        }
     }
 
     public void Remove(string key)
@@ -82,7 +84,9 @@ internal sealed partial class MemoryManager : IMemoryCore, IDisposable
 
         if (_entries.TryGetValue(key, out var entry))
         {
-            if (entry.Date < DateTimeOffset.UtcNow)
+            var now = DateTimeOffset.Now;
+
+            if (entry.IsExpired(now))
             {
                 Remove(key);
                 item = default;
@@ -90,7 +94,7 @@ internal sealed partial class MemoryManager : IMemoryCore, IDisposable
             }
 
             item = (T)entry.Value;
-            entry.Touch = DateTimeOffset.UtcNow;
+            entry.Touch(now);
             return true;
         }
 
@@ -223,38 +227,22 @@ internal sealed partial class MemoryManager : IMemoryCore, IDisposable
     public int Count() =>
         _entries.Count;
 
-    internal async void StartCleanJob()
-    {
-        while (true)
-        {
-            await _timer.WaitForNextTickAsync(_token);
-
-            if (!_token.IsCancellationRequested)
-                return;
-
-            CleanExpired();
-        }
-    }
-    internal void CleanExpired()
+    internal void ClearExpired()
     {
         var now = DateTimeOffset.UtcNow;
+        var removedKeys = new List<string>();
 
         foreach (var entry in _entries.Values)
         {
-            if (entry.Date is not null && entry.Date < now)
-                _entries.TryRemove(entry.Key, out _);
-            else if (entry.SlidingExpiration is not null && entry.Touch + entry.SlidingExpiration < now)
-                _entries.TryRemove(entry.Key, out _);
+            if (entry.IsExpired(now))
+               removedKeys.Add(entry.Key);
         }
+
+        foreach (var key in removedKeys)
+            _entries.TryRemove(key, out _);
     }
 
-    public void Clean() =>
+    public void Clear() =>
         _entries.Clear();
 
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-        _entries.Clear();
-    }
 }
