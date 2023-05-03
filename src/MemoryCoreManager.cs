@@ -7,8 +7,10 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
 {
     internal readonly ConcurrentDictionary<string, MemoryEntry> _entries;
     internal readonly KeyedLocker<string> keyedLocker = new();
+    internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
 
-    public MemoryCoreManager(StringComparison stringComparison = StringComparison.Ordinal)
+    public MemoryCoreManager() : this(StringComparison.Ordinal) { }
+    public MemoryCoreManager(StringComparison stringComparison)
     {
         _entries = new(comparer: StringComparer.FromComparison(stringComparison));
     }
@@ -18,7 +20,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
-        var now = DateTimeOffset.Now;
+        var now = dateTimeOffsetProvider.Now;
         var expiration = now + absoluteExpiration;
         _entries[key] = new MemoryEntry
         {
@@ -34,7 +36,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
-        var now = DateTimeOffset.Now;
+        var now = dateTimeOffsetProvider.Now;
         var expiration = absoluteExpiration is null ? default : (now + absoluteExpiration);
         _entries[key] = new MemoryEntry
         {
@@ -52,20 +54,17 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
-        return _entries.ContainsKey(key);
+        return TryGet(key, out _);
     }
 
     public IEnumerable<string> GetKeys()
     {
         var entries = _entries.ToArray();
+        var now = dateTimeOffsetProvider.Now;
         foreach (var entry in entries)
         {
-            if (entry.Value.IsExpired())
-            {
-                Remove(entry.Key);
-                continue;
-            }
-            yield return entry.Key;
+            if (!entry.Value.IsExpired(now))
+                yield return entry.Key;
         }
     }
 
@@ -82,9 +81,20 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
+        if (TryGet(key, out object? value))
+        {
+            item = (T?)value;
+            return true;
+        }
+
+        item = default;
+        return false;
+    }
+    internal bool TryGet(string key, out object? item)
+    {
         if (_entries.TryGetValue(key, out var entry))
         {
-            var now = DateTimeOffset.Now;
+            var now = dateTimeOffsetProvider.Now;
 
             if (entry.IsExpired(now))
             {
@@ -93,7 +103,7 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
                 return false;
             }
 
-            item = (T)entry.Value;
+            item = entry.Value;
             entry.Touch(now);
             return true;
         }
@@ -229,13 +239,13 @@ internal sealed partial class MemoryCoreManager : IMemoryCore
 
     internal void ClearExpired()
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = dateTimeOffsetProvider.Now;
         var removedKeys = new List<string>();
 
         foreach (var entry in _entries.Values)
         {
             if (entry.IsExpired(now))
-               removedKeys.Add(entry.Key);
+                removedKeys.Add(entry.Key);
         }
 
         foreach (var key in removedKeys)

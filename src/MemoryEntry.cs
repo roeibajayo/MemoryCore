@@ -9,10 +9,8 @@ internal sealed class MemoryEntry
     internal TimeSpan? SlidingExpiration { get; set; }
     internal DateTimeOffset? LastTouch { get; set; }
 
-    internal bool IsExpired(DateTimeOffset? now = null)
+    internal bool IsExpired(DateTimeOffset now)
     {
-        now ??= DateTimeOffset.Now;
-
         return (Date is not null && Date < now) ||
             (SlidingExpiration is not null && LastTouch + SlidingExpiration < now);
     }
@@ -22,11 +20,11 @@ internal sealed class MemoryEntry
         return Tags.Contains(tag, comparer);
     }
 
-    internal void Touch(DateTimeOffset? date = null)
+    internal void Touch(DateTimeOffset date)
     {
         if (SlidingExpiration is null)
             return;
 
-        LastTouch = date ?? DateTimeOffset.Now;
+        LastTouch = date;
     }
 }
