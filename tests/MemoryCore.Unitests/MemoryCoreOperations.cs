@@ -6,11 +6,11 @@ public class MemoryCoreOperations
     public void AddWithTag_GetTags_TagExists()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var tags = new[] { "tag1" };
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes), tags);
@@ -24,11 +24,11 @@ public class MemoryCoreOperations
     public void AddWithTag_TagExists()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var tags = new[] { "tag1" };
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes), tags);
@@ -41,11 +41,11 @@ public class MemoryCoreOperations
     public void AddWithTag_RemoveTag_Removed()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var tags = new[] { "tag1" };
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes), tags);
@@ -59,10 +59,10 @@ public class MemoryCoreOperations
     public void AddSliding_Touch_Expired_NotExists()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.AddSliding(key, value, TimeSpan.FromMinutes(minutes));
@@ -78,10 +78,10 @@ public class MemoryCoreOperations
     public void AddSliding_Touch_Exists()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.AddSliding(key, value, TimeSpan.FromMinutes(minutes));
@@ -97,10 +97,10 @@ public class MemoryCoreOperations
     public void AddSliding_Expired_NotExists()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.AddSliding(key, value, TimeSpan.FromMinutes(minutes));
@@ -114,10 +114,10 @@ public class MemoryCoreOperations
     public void AddSliding_Exists()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.AddSliding(key, value, TimeSpan.FromMinutes(minutes));
@@ -130,10 +130,10 @@ public class MemoryCoreOperations
     public void Add_Exists()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes));
@@ -143,18 +143,57 @@ public class MemoryCoreOperations
     }
 
     [Fact]
-    public void TryGetOrSet_OnlyFirstExecuted_RetrunValue()
+    public void TryGetOrAdd_OnlyFirstExecuted_RetrunValue()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
         var executions = 0;
 
         //Act
-        cache.TryGetOrSet(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        cache.TryGetOrSet(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        cache.TryGetOrAdd(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        cache.TryGetOrAdd(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
+
+        //Assert
+        Assert.Equal(1, executions);
+        Assert.True(cache.Exists(key));
+    }
+
+    [Fact]
+    public async Task TryGetOrAddAsyncParallel_OnlyFirstExecuted_RetrunValue()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        using var cache = new MemoryCoreManager();
+        var executions = 0;
+
+        //Act
+        var task1 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var task2 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        await Task.WhenAll(task1, task2);
+
+        //Assert
+        Assert.Equal(1, executions);
+        Assert.True(cache.Exists(key));
+    }
+
+    [Fact]
+    public async Task TryGetOrAddAsync_OnlyFirstExecuted_RetrunValue()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        using var cache = new MemoryCoreManager();
+        var executions = 0;
+
+        //Act
+        var value1 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var value2 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
 
         //Assert
         Assert.Equal(1, executions);
@@ -165,10 +204,10 @@ public class MemoryCoreOperations
     public void WaitForExpired_NotFound()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes));
@@ -182,10 +221,10 @@ public class MemoryCoreOperations
     public void Remove_Removed()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes));
@@ -202,7 +241,7 @@ public class MemoryCoreOperations
         var prefix = "r";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(prefix + 1, value, minutes);
@@ -217,10 +256,10 @@ public class MemoryCoreOperations
     public void Add_GetValue()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes));
@@ -233,10 +272,10 @@ public class MemoryCoreOperations
     public void AddMinutes_GetValue()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, minutes);
@@ -249,10 +288,10 @@ public class MemoryCoreOperations
     public void ClearExpired_NoItems()
     {
         //Arrange
-        var key = "r1";
+        var key = "key";
         var value = "ok";
         var minutes = 5;
-        var cache = new MemoryCoreManager();
+        using var cache = new MemoryCoreManager();
 
         //Act
         cache.Add(key, value, minutes);

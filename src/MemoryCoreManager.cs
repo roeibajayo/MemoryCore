@@ -153,7 +153,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrSet<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, params string[] tags)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -164,7 +164,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             if (forcesetLocker.locked)
             {
                 forcesetLocker.Dispose();
-                return TryGetOrSet(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
+                return TryGetOrAdd(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
             }
 
             var value = getValueFunction();
@@ -180,7 +180,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (locker.locked)
         {
             locker.Dispose();
-            return TryGetOrSet(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
+            return TryGetOrAdd(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
         }
 
         item = getValueFunction();
@@ -196,7 +196,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrSetAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, params string[] tags)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -207,7 +207,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             if (forcesetLocker.locked)
             {
                 forcesetLocker.Dispose();
-                return await TryGetOrSetAsync(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
+                return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
             }
 
             var value = await getValueFunction();
@@ -222,7 +222,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (locker.locked)
         {
             locker.Dispose();
-            return await TryGetOrSetAsync(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
+            return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
         }
 
         item = await getValueFunction();
@@ -238,7 +238,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrSetSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, params string[] tags)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -266,7 +266,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrSetSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, params string[] tags)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));

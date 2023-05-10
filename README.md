@@ -77,16 +77,16 @@ public class Example
         return cache.Get<string>("key");
     }    
     
-    public string GetOrSetItem()
+    public string GetOrAddItem()
     {
-        return cache.TryGetOrSet("key", 
+        return cache.TryGetOrAdd("key", 
 		    () => "value", 
 		    TimeSpan.FromMinutes(1));
     }
     
-    public async Task<string> GetOrSetItemAsync()
+    public async Task<string> GetOrAddItemAsync()
     {
-        return await cache.TryGetOrSetAsync("key", 
+        return await cache.TryGetOrAddAsync("key", 
 		    async () => await GetValueAsync(), 
 		    TimeSpan.FromMinutes(1));
     }

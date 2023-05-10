@@ -57,28 +57,28 @@ public interface IMemoryCore : IMemoryCache
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    T? TryGetOrSet<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
+    T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
         bool allowDefault = false, bool forceSet = false, params string[] tags);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    Task<T?> TryGetOrSetAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration,
+    Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration,
         bool allowDefault = false, bool forceSet = false, params string[] tags);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    T? TryGetOrSetSliding<T>(string key, Func<T> getValueFunction, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null,
+    T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null,
         bool allowDefault = false, bool forceSet = false, params string[] tags);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    Task<T?> TryGetOrSetSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null,
+    Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null,
         bool allowDefault = false, bool forceSet = false, params string[] tags);
 
     /// <summary>
