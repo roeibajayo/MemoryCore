@@ -9,7 +9,8 @@ public static class IMemoryCoreExtentionsTags
     /// </summary>
     public static void RemoveTags(this IMemoryCore cache, Regex pattren)
     {
-        ArgumentNullException.ThrowIfNull(nameof(pattren));
+        if (pattren is null)
+            throw new ArgumentNullException(nameof(pattren));
 
         var keys = cache.GetTags().Where(tag => pattren.IsMatch(tag));
         foreach (var key in keys)
@@ -21,7 +22,8 @@ public static class IMemoryCoreExtentionsTags
     /// </summary>
     public static void RemoveTags(this IMemoryCore cache, IEnumerable<string> tags)
     {
-        ArgumentNullException.ThrowIfNull(nameof(tags));
+        if (tags is null)
+            throw new ArgumentNullException(nameof(tags));
 
         foreach (string tag in tags)
             cache.RemoveTag(tag);
@@ -32,7 +34,8 @@ public static class IMemoryCoreExtentionsTags
     /// </summary>
     public static void RemoveTagsByPrefix(this IMemoryCore cache, string prefix)
     {
-        ArgumentNullException.ThrowIfNull(nameof(prefix));
+        if (prefix is null)
+            throw new ArgumentNullException(nameof(prefix));
 
         var tags = cache.GetTags().Where(tag => tag.StartsWith(prefix));
         foreach (var tag in tags)

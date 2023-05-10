@@ -20,7 +20,7 @@ public partial class MemoryCoreManager : IMemoryCore
     public bool ExistsTag(string tag)
     {
         return entries.Values
-            .Any(x => x.IsTagged(tag, entries.Comparer));
+            .Any(x => x.IsTagged(tag, comparer));
     }
 
     /// <summary>
@@ -29,7 +29,7 @@ public partial class MemoryCoreManager : IMemoryCore
     public void RemoveTag(string tag)
     {
         var keys = entries.Values
-            .Where(x => x.Tags.Contains(tag, entries.Comparer))
+            .Where(x => x.Tags.Contains(tag, comparer))
             .Select(x => x.Key);
 
         foreach (var key in keys)

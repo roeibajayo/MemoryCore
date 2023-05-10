@@ -7,6 +7,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 {
     private const int clearInterval = 20 * 1000;
 
+    internal readonly IEqualityComparer<string> comparer;
     internal readonly ConcurrentDictionary<string, MemoryEntry> entries;
     internal readonly KeyedLocker<string> keyedLocker = new();
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
@@ -17,7 +18,12 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// <param name="stringComparison">The string comparison to use for keys.</param>
     public MemoryCoreManager(StringComparison stringComparison)
     {
-        entries = new(comparer: StringComparer.FromComparison(stringComparison));
+#if NET6_0_OR_GREATER
+        comparer = StringComparer.FromComparison(stringComparison);
+#else
+        comparer = FromComparison(stringComparison);
+#endif
+        entries = new(comparer: comparer);
         timer = new((state) => ClearExpired(), null, clearInterval, clearInterval);
     }
 
@@ -309,4 +315,21 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// </summary>
     public void Clear() =>
         entries.Clear();
+
+
+    // Convert a StringComparison to a StringComparer
+    private static StringComparer FromComparison(StringComparison comparisonType)
+    {
+        return comparisonType switch
+        {
+            StringComparison.CurrentCulture => StringComparer.CurrentCulture,
+            StringComparison.CurrentCultureIgnoreCase => StringComparer.CurrentCultureIgnoreCase,
+            StringComparison.InvariantCulture => StringComparer.InvariantCulture,
+            StringComparison.InvariantCultureIgnoreCase => StringComparer.InvariantCultureIgnoreCase,
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => throw new ArgumentException(nameof(comparisonType)),
+        };
+    }
 }
+

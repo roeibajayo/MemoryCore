@@ -32,27 +32,27 @@ public class Benchmark
     }
 
     [Benchmark]
-    public void MemoryCore_Get()
+    public string? MemoryCore_Get()
     {
-        var _ = memoryCore.Get<string>("global-key");
+        return memoryCore.Get<string>("global-key");
     }
 
     [Benchmark]
-    public void MemoryCache_Get()
+    public string MemoryCache_Get()
     {
-        var _ = (string)memoryCache.Get("global-key");
+        return (string)memoryCache.Get("global-key");
     }
 
 
     [Benchmark]
-    public void MemoryCore_Exists()
+    public bool MemoryCore_Exists()
     {
-        memoryCore.Exists("global-key");
+        return memoryCore.Exists("global-key");
     }
 
     [Benchmark]
-    public void MemoryCache_Exists()
+    public bool MemoryCache_Exists()
     {
-        memoryCache.Any(x => x.Key == "global-key");
+        return memoryCache.Any(x => x.Key == "global-key");
     }
 }
