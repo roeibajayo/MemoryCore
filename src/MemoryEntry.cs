@@ -9,7 +9,7 @@ namespace MemoryCore
     {
         internal string Key { get; init; }
         internal object? Value { get; set; }
-        internal string[] Tags { get; init; }
+        internal string[]? Tags { get; set; }
         public long? AbsoluteExpiration { get; set; }
         public long? SlidingExpiration { get; set; }
 
@@ -20,7 +20,7 @@ namespace MemoryCore
 
         internal bool IsTagged(string tag, IEqualityComparer<string> comparer)
         {
-            return Tags.Contains(tag, comparer);
+            return Tags?.Contains(tag, comparer) ?? false;
         }
 
         internal void Touch(long date)

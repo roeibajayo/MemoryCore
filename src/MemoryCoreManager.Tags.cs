@@ -8,6 +8,7 @@ public partial class MemoryCoreManager : IMemoryCore
     public IEnumerable<string> GetTags()
     {
         return entries.Values
+            .Where(x => x.Tags is not null)
             .SelectMany(x => x.Tags)
             .Distinct();
     }

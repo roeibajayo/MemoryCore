@@ -30,7 +30,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// <summary>
     /// Add a new item to the cache.
     /// </summary>
-    public void Add(string key, object value, TimeSpan absoluteExpiration, params string[] tags)
+    public void Add(string key, object value, TimeSpan absoluteExpiration, string[]? tags = null)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -49,7 +49,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// <summary>
     /// Add a new item to the cache with a sliding expiration.
     /// </summary>
-    public void AddSliding(string key, object value, TimeSpan duration, TimeSpan? absoluteExpiration = null, params string[] tags)
+    public void AddSliding(string key, object value, TimeSpan duration, TimeSpan? absoluteExpiration = null, string[]? tags = null)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -153,7 +153,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, string[]? tags = null)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -196,7 +196,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, string[]? tags = null)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -238,7 +238,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, string[]? tags = null)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -266,7 +266,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, params string[] tags)
+    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, string[]? tags = null)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
