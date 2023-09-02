@@ -5,6 +5,7 @@ namespace MemoryCore;
 internal interface IDateTimeOffsetProvider
 {
     public long Now { get; }
+    public DateTimeOffset NowOffset { get; }
 }
 
 internal sealed class DateTimeOffsetProvider : IDateTimeOffsetProvider
@@ -17,4 +18,6 @@ internal sealed class DateTimeOffsetProvider : IDateTimeOffsetProvider
     private readonly long? now;
     public long Now =>
         now ?? DateTimeUtils.Now;
+    public DateTimeOffset NowOffset =>
+        DateTimeOffset.UtcNow;
 }

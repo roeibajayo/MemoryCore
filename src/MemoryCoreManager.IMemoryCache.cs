@@ -21,7 +21,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     }
     public void Dispose()
     {
-        Clear();
+        entries.Clear();
         timer.Dispose();
     }
 }

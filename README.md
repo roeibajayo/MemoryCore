@@ -18,6 +18,8 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 ✔ Support for keyless items.
 
+✔ Support for persistent items.
+
 ✔ Developers friendly ❤️ Easy to use.
 
 ## Benchmarks MemoryCore (1.1.0) vs System.Runtime.Caching (7.0.0):

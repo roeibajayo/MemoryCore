@@ -4,14 +4,14 @@ using Microsoft.Extensions.Primitives;
 
 namespace MemoryCore
 {
-
     internal sealed class MemoryEntry : ICacheEntry
     {
+        internal bool Persist { get; init; }
         internal string Key { get; init; }
         internal object? Value { get; set; }
         internal string[]? Tags { get; set; }
-        public long? AbsoluteExpiration { get; set; }
-        public long? SlidingExpiration { get; set; }
+        internal long? AbsoluteExpiration { get; set; }
+        internal long? SlidingExpiration { get; set; }
 
         internal bool IsExpired(long now)
         {
