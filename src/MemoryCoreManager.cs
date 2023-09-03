@@ -28,7 +28,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
     /// <param name="name">The name of the instance.</param>
     /// <param name="stringComparison">The string comparison to use for keys.</param>
-    public MemoryCoreManager(string name, StringComparison stringComparison, IPersistedStore? persistedStore)
+    public MemoryCoreManager(string? name, StringComparison stringComparison, IPersistedStore? persistedStore)
     {
         Name = string.IsNullOrWhiteSpace(name) ? DEFAULT_NAME : name;
 #if NET6_0_OR_GREATER

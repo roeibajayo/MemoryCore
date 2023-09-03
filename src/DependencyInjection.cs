@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using MemoryCore.Persistent;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MemoryCore;
@@ -13,7 +14,14 @@ public static class DependencyInjection
     public static IServiceCollection AddMemoryCore(this IServiceCollection services,
         StringComparison keysComparison = StringComparison.Ordinal)
     {
-        services.AddSingleton<IMemoryCore>(new MemoryCoreManager(keysComparison));
+        if (!services.Any(s => s.ServiceType == typeof(IPersistedStore)))
+            services.AddSingleton<IPersistedStore, JsonPersistedStore>();
+
+        services.AddSingleton<IMemoryCore>(s =>
+        {
+            var store = s.GetService<IPersistedStore>();
+            return new MemoryCoreManager(null, keysComparison, store);
+        });
         services.AddSingleton<IMemoryCache>(s => s.GetService<IMemoryCore>()!);
         return services;
     }
