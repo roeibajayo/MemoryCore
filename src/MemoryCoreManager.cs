@@ -165,6 +165,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
             if (entry.SlidingExpiration is not null)
                 TryInsertPersistedEntry(entry);
+
+            return true;
         }
 
         item = default;
