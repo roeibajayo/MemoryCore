@@ -5,17 +5,10 @@ namespace MemoryCore.Persistent;
 
 internal class JsonPersistedStore : IPersistedStore
 {
-    private readonly IDateTimeOffsetProvider dateTimeOffsetProvider;
-
-    public JsonPersistedStore(IDateTimeOffsetProvider dateTimeOffsetProvider)
-    {
-        this.dateTimeOffsetProvider = dateTimeOffsetProvider;
-    }
-
     private string GetPath(string name) =>
         Path.Combine(AppContext.BaseDirectory, $"{name}.json");
 
-    public IEnumerable<PersistedEntry> GetNotExpired(string name)
+    public IEnumerable<PersistedEntry> GetAll(string name)
     {
         var path = GetPath(name);
 
@@ -27,14 +20,9 @@ internal class JsonPersistedStore : IPersistedStore
         if (persistedEntries is null)
             yield break;
 
-        var notExpired = new List<PersistedEntry>();
-        var nowOffset = dateTimeOffsetProvider.NowOffset;
         foreach (var entry in persistedEntries)
         {
             if (entry is null)
-                continue;
-
-            if (entry.AbsoluteExpiration is null || entry.AbsoluteExpiration.Value < nowOffset)
                 continue;
 
             var jsonValue = (JsonElement)entry.Value!;
@@ -44,17 +32,48 @@ internal class JsonPersistedStore : IPersistedStore
             });
             entry.Value = value!;
 
-            notExpired.Add(entry);
             yield return entry;
         }
-
-        if (notExpired.Count != persistedEntries.Length)
-            Save(name, notExpired);
     }
-    public void Save(string name, IEnumerable<PersistedEntry> entries)
+    public void Clear(string name)
     {
         var path = GetPath(name);
-        if (!entries.Any())
+
+        if (!File.Exists(path))
+            return;
+
+        File.Delete(path);
+    }
+    public void Insert(string name, PersistedEntry entry)
+    {
+        var entries = GetAll(name).ToList();
+        var currentEntry = entries.FindIndex(x => x.Key == entry.Key);
+        if (currentEntry != -1)
+            entries.RemoveAt(currentEntry);
+
+        entries.Add(entry);
+        Save(name, entries);
+    }
+    public void Delete(string name, IEnumerable<string> keys)
+    {
+        var entries = GetAll(name).ToList();
+
+        foreach (var key in keys)
+        {
+            var currentEntry = entries.FindIndex(x => x.Key == key);
+            if (currentEntry == -1)
+                continue;
+
+            entries.RemoveAt(currentEntry);
+        }
+
+        Save(name, entries);
+    }
+
+    private void Save(string name, IList<PersistedEntry> entries)
+    {
+        var path = GetPath(name);
+        if (entries.Count == 0)
         {
             Clear(name);
             return;
@@ -70,14 +89,5 @@ internal class JsonPersistedStore : IPersistedStore
             ValueType = entry.Value.GetType().AssemblyQualifiedName!
         }));
         File.WriteAllText(path, json);
-    }
-    public void Clear(string name)
-    {
-        var path = GetPath(name);
-
-        if (!File.Exists(path))
-            return;
-
-        File.Delete(path);
     }
 }

@@ -38,7 +38,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 #endif
         entries = new(comparer: comparer);
         timer = new((state) => ClearExpired(), null, clearInterval, clearInterval);
-        this.persistedStore = persistedStore ?? new JsonPersistedStore(dateTimeOffsetProvider);
+        this.persistedStore = persistedStore ?? new JsonPersistedStore();
         LoadPersistedEntries();
     }
 
@@ -52,7 +52,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
         var now = dateTimeOffsetProvider.Now;
         var expiration = now + (long)absoluteExpiration.TotalMilliseconds;
-        entries[key] = new MemoryEntry
+        var entry = new MemoryEntry
         {
             Persist = persist,
             Key = key,
@@ -60,9 +60,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             Tags = tags,
             AbsoluteExpiration = expiration
         };
-
-        if (persist)
-            SavePersistedEntries();
+        entries[key] = entry;
+        TryInsertPersistedEntry(entry);
     }
 
     /// <summary>
@@ -86,9 +85,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         };
         entries[key] = entry;
         entry.Touch(now);
-
-        if (persist)
-            SavePersistedEntries();
+        TryInsertPersistedEntry(entry);
     }
 
     /// <summary>
@@ -325,7 +322,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             return;
 
         var now = dateTimeOffsetProvider.Now;
-        var savePersistedEntries = false;
+        var deleteKeys = new List<string>();
         foreach (var entry in entries.Values)
         {
             if (entry.IsExpired(now))
@@ -333,12 +330,12 @@ public sealed partial class MemoryCoreManager : IMemoryCore
                 entries.TryRemove(entry.Key, out _);
 
                 if (entry.Persist)
-                    savePersistedEntries = true;
+                    deleteKeys.Add(entry.Key);
             }
         }
 
-        if (savePersistedEntries)
-            SavePersistedEntries();
+        if (deleteKeys.Count > 0)
+            persistedStore.Delete(Name, deleteKeys);
     }
 
     /// <summary>
@@ -354,8 +351,15 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     {
         var now = dateTimeOffsetProvider.Now;
         var nowOffset = dateTimeOffsetProvider.NowOffset;
-        foreach (var entry in persistedStore.GetNotExpired(Name))
+        var deleteKeys = new List<string>();
+        foreach (var entry in persistedStore.GetAll(Name))
         {
+            if (entry.AbsoluteExpiration is not null && entry.AbsoluteExpiration.Value < nowOffset)
+            {
+                deleteKeys.Add(entry.Key);
+                continue;
+            }
+
             entries[entry.Key] = new MemoryEntry
             {
                 Persist = true,
@@ -368,25 +372,31 @@ public sealed partial class MemoryCoreManager : IMemoryCore
                 SlidingExpiration = entry.SlidingExpiration,
             };
         }
-    }
-    private void SavePersistedEntries()
-    {
-        var now = dateTimeOffsetProvider.Now;
-        var nowOffset = dateTimeOffsetProvider.NowOffset;
-        var persistedEntries = entries.Values
-            .Where(x => x.Persist && x.Value is not null && !x.IsExpired(now))
-            .Select(x => new PersistedEntry
-            {
-                Key = x.Key,
-                Value = x.Value!,
-                Tags = x.Tags,
-                AbsoluteExpiration = x.AbsoluteExpiration is null ?
-                    null :
-                    nowOffset.AddMilliseconds(x.AbsoluteExpiration.Value - now),
-                SlidingExpiration = x.SlidingExpiration,
-            }).ToArray();
 
-        persistedStore.Save(Name, persistedEntries);
+        persistedStore.Delete(Name, deleteKeys);
+    }
+    private void TryInsertPersistedEntry(MemoryEntry entry)
+    {
+        if (!entry.Persist || entry.Value is null)
+            return;
+
+        var now = dateTimeOffsetProvider.Now;
+
+        if (entry.IsExpired(now))
+            return;
+
+        var nowOffset = dateTimeOffsetProvider.NowOffset;
+
+        persistedStore.Insert(Name, new PersistedEntry
+        {
+            Key = entry.Key,
+            Value = entry.Value!,
+            Tags = entry.Tags,
+            AbsoluteExpiration = entry.AbsoluteExpiration is null ?
+                    null :
+                    nowOffset.AddMilliseconds(entry.AbsoluteExpiration.Value - now),
+            SlidingExpiration = entry.SlidingExpiration,
+        });
     }
 
 
