@@ -30,7 +30,7 @@ public partial class MemoryCoreManager : IMemoryCore
     public void RemoveTag(string tag)
     {
         var keys = entries.Values
-            .Where(x => x.Tags.Contains(tag, comparer))
+            .Where(x => x.Tags.Any(x => x.Equals(tag, comparer)))
             .Select(x => x.Key);
 
         foreach (var key in keys)

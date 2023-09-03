@@ -9,7 +9,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     private const string DEFAULT_NAME = "MemoryCoreCache";
     private const int clearInterval = 20 * 1000;
 
-    internal readonly IEqualityComparer<string> comparer;
+    internal readonly StringComparison comparer;
     internal readonly ConcurrentDictionary<string, MemoryEntry> entries;
     internal readonly KeyedLocker<string> keyedLocker = new();
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
@@ -32,9 +32,9 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     {
         Name = string.IsNullOrWhiteSpace(name) ? DEFAULT_NAME : name;
 #if NET6_0_OR_GREATER
-        comparer = StringComparer.FromComparison(stringComparison);
+        var comparer = StringComparer.FromComparison(stringComparison);
 #else
-        comparer = FromComparison(stringComparison);
+        var comparer = FromComparison(stringComparison);
 #endif
         entries = new(comparer: comparer);
         timer = new((state) => ClearExpired(), null, clearInterval, clearInterval);
@@ -162,7 +162,9 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
             item = entry.Value;
             entry.Touch(now);
-            return true;
+
+            if (entry.SlidingExpiration is not null)
+                TryInsertPersistedEntry(entry);
         }
 
         item = default;
@@ -335,7 +337,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         }
 
         if (deleteKeys.Count > 0)
-            persistedStore.Delete(Name, deleteKeys);
+            persistedStore.Delete(Name, comparer, deleteKeys);
     }
 
     /// <summary>
@@ -373,7 +375,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             };
         }
 
-        persistedStore.Delete(Name, deleteKeys);
+        persistedStore.Delete(Name, comparer, deleteKeys);
     }
     private void TryInsertPersistedEntry(MemoryEntry entry)
     {
@@ -387,7 +389,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
         var nowOffset = dateTimeOffsetProvider.NowOffset;
 
-        persistedStore.Insert(Name, new PersistedEntry
+        persistedStore.InsertOrReplace(Name, entry.Key, comparer, new PersistedEntry
         {
             Key = entry.Key,
             Value = entry.Value!,

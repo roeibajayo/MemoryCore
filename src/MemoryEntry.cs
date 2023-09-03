@@ -18,9 +18,9 @@ namespace MemoryCore
             return AbsoluteExpiration is null || AbsoluteExpiration.Value < now;
         }
 
-        internal bool IsTagged(string tag, IEqualityComparer<string> comparer)
+        internal bool IsTagged(string tag, StringComparison comparer)
         {
-            return Tags?.Contains(tag, comparer) ?? false;
+            return Tags?.Any(x => x.Equals(tag, comparer)) ?? false;
         }
 
         internal void Touch(long date)

@@ -44,23 +44,23 @@ internal class JsonPersistedStore : IPersistedStore
 
         File.Delete(path);
     }
-    public void Insert(string name, PersistedEntry entry)
+    public void InsertOrReplace(string name, string key, StringComparison comparer, PersistedEntry entry)
     {
         var entries = GetAll(name).ToList();
-        var currentEntry = entries.FindIndex(x => x.Key == entry.Key);
+        var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
         if (currentEntry != -1)
             entries.RemoveAt(currentEntry);
 
         entries.Add(entry);
         Save(name, entries);
     }
-    public void Delete(string name, IEnumerable<string> keys)
+    public void Delete(string name, StringComparison comparer, IEnumerable<string> keys)
     {
         var entries = GetAll(name).ToList();
 
         foreach (var key in keys)
         {
-            var currentEntry = entries.FindIndex(x => x.Key == key);
+            var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
             if (currentEntry == -1)
                 continue;
 
