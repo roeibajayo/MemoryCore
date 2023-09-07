@@ -121,7 +121,11 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
-        entries.TryRemove(key, out _);
+        entries.TryRemove(key, out var entry);
+        if (entry.Persist)
+        {
+            persistedStore.Delete(Name, comparer, Enumerable.Repeat(entry.Key, 1));
+        }
     }
 
     /// <summary>

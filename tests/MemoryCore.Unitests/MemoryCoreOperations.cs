@@ -3,6 +3,90 @@
 public class MemoryCoreOperations
 {
     [Fact]
+    public void Persist_Delete_KeyNotExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Add(key, value, TimeSpan.FromMinutes(minutes), persist: true);
+        cache.Remove(key);
+        var exists = cache.Exists(key);
+
+        cache.Dispose();
+        cache = new MemoryCoreManager();
+
+        //Assert
+        Assert.False(exists);
+        Assert.False(cache.Exists(key));
+
+        cache.Clear();
+    }
+
+    [Fact]
+    public void Persist_Expired_ResetInstance_KeyNotExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Add(key, value, TimeSpan.FromMinutes(minutes), persist: true);
+        cache.Dispose();
+        cache = new MemoryCoreManager();
+        cache.dateTimeOffsetProvider = new DateTimeOffsetProvider(TimeSpan.FromMinutes(minutes + 1));
+
+        //Assert
+        Assert.False(cache.Exists(key));
+
+        cache.Clear();
+    }
+
+    [Fact]
+    public void Persist_Expired_KeyNotExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        using var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Add(key, value, TimeSpan.FromMinutes(minutes), persist: true);
+        cache.dateTimeOffsetProvider = new DateTimeOffsetProvider(TimeSpan.FromMinutes(minutes + 1));
+
+        //Assert
+        Assert.False(cache.Exists(key));
+
+        cache.Clear();
+    }
+
+    [Fact]
+    public void Persist_ResetInstance_KeyExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Add(key, value, TimeSpan.FromMinutes(minutes), persist: true);
+        cache.Dispose();
+        cache = new MemoryCoreManager();
+
+        //Assert
+        Assert.True(cache.Exists(key));
+
+        cache.Clear();
+    }
+
+    [Fact]
     public void AddWithTag_GetTags_TagExists()
     {
         //Arrange
