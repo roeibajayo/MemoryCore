@@ -5,69 +5,83 @@ namespace MemoryCore.Persistent;
 
 internal class JsonPersistedStore : IPersistedStore
 {
+    private static readonly object LOCKER = new();
+
     private string GetPath(string name) =>
         Path.Combine(AppContext.BaseDirectory, $"{name}.json");
 
     public IEnumerable<PersistedEntry> GetAll(string name)
     {
-        var path = GetPath(name);
-
-        if (!File.Exists(path))
-            yield break;
-
-        var json = File.ReadAllText(path);
-        var persistedEntries = JsonSerializer.Deserialize<JsonPersistedEntry[]>(json);
-        if (persistedEntries is null)
-            yield break;
-
-        foreach (var entry in persistedEntries)
+        lock (LOCKER)
         {
-            if (entry is null)
-                continue;
+            var path = GetPath(name);
 
-            var jsonValue = (JsonElement)entry.Value!;
-            var value = jsonValue.Deserialize(Type.GetType(entry.ValueType)!, new JsonSerializerOptions
+            if (!File.Exists(path))
+                yield break;
+
+            var json = File.ReadAllText(path);
+            var persistedEntries = JsonSerializer.Deserialize<JsonPersistedEntry[]>(json);
+            if (persistedEntries is null)
+                yield break;
+
+            foreach (var entry in persistedEntries)
             {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            });
-            entry.Value = value!;
+                if (entry is null)
+                    continue;
 
-            yield return entry;
+                var jsonValue = (JsonElement)entry.Value!;
+                var value = jsonValue.Deserialize(Type.GetType(entry.ValueType)!, new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                });
+                entry.Value = value!;
+
+                yield return entry;
+            }
         }
     }
     public void Clear(string name)
     {
-        var path = GetPath(name);
+        lock (LOCKER)
+        {
+            var path = GetPath(name);
 
-        if (!File.Exists(path))
-            return;
+            if (!File.Exists(path))
+                return;
 
-        File.Delete(path);
+            File.Delete(path);
+        }
     }
     public void InsertOrReplace(string name, string key, StringComparison comparer, PersistedEntry entry)
     {
-        var entries = GetAll(name).ToList();
-        var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
-        if (currentEntry != -1)
-            entries.RemoveAt(currentEntry);
+        lock (LOCKER)
+        {
+            var entries = GetAll(name).ToList();
+            var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
+            if (currentEntry != -1)
+                entries.RemoveAt(currentEntry);
 
-        entries.Add(entry);
-        Save(name, entries);
+            entries.Add(entry);
+            Save(name, entries);
+        }
     }
     public void Delete(string name, StringComparison comparer, IEnumerable<string> keys)
     {
-        var entries = GetAll(name).ToList();
-
-        foreach (var key in keys)
+        lock (LOCKER)
         {
-            var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
-            if (currentEntry == -1)
-                continue;
+            var entries = GetAll(name).ToList();
 
-            entries.RemoveAt(currentEntry);
+            foreach (var key in keys)
+            {
+                var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
+                if (currentEntry == -1)
+                    continue;
+
+                entries.RemoveAt(currentEntry);
+            }
+
+            Save(name, entries);
         }
-
-        Save(name, entries);
     }
 
     private void Save(string name, IList<PersistedEntry> entries)

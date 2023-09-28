@@ -122,7 +122,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             throw new ArgumentNullException(nameof(key));
 
         entries.TryRemove(key, out var entry);
-        if (entry.Persist)
+        if (entry is not null && entry.Persist)
         {
             persistedStore.Delete(Name, comparer, Enumerable.Repeat(entry.Key, 1));
         }
