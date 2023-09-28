@@ -337,6 +337,20 @@ public class MemoryCoreOperations
     }
 
     [Fact]
+    public void RemoveNotExists_NoError()
+    {
+        //Arrange
+        var key = "not-exists";
+        using var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Remove(key);
+
+        //Assert
+        Assert.Equal(0, cache.Count());
+    }
+
+    [Fact]
     public void Add_GetValue()
     {
         //Arrange
