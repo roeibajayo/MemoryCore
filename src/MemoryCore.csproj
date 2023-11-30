@@ -4,8 +4,8 @@
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>10</LangVersion>
-    <Version>1.4.3</Version>
+    <LangVersion>12</LangVersion>
+    <Version>1.4.4</Version>
     <Authors>roeibajayo@gmail.com</Authors>
     <PackageId>MemoryCore</PackageId>
     <Company>RoeiBajayo</Company>

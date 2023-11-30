@@ -351,6 +351,40 @@ public class MemoryCoreOperations
     }
 
     [Fact]
+    public void RemoveTag_NotExists_NoError()
+    {
+        //Arrange
+        var tag = "not-exists";
+        using var cache = new MemoryCoreManager();
+        cache.Add("key", "value", 5);
+
+        //Act
+        cache.RemoveTag(tag);
+
+        //Assert
+        Assert.Equal(1, cache.Count());
+    }
+
+    [Fact]
+    public async Task RemoveTag_Exists_NoError()
+    {
+        //Arrange
+        var tag = "exists";
+        using var cache = new MemoryCoreManager();
+        cache.Add("key", "value", 5, tag);
+        cache.TryGetOrAdd("key2", () => "value2", TimeSpan.FromSeconds(50), tags: [tag]);
+        await cache.TryGetOrAddAsync("key3", async () => Task.FromResult("value2"), TimeSpan.FromSeconds(50), tags: [tag]);
+        cache.TryGetOrAdd<string?>("key4", () => null, TimeSpan.FromSeconds(50), tags: null);
+        cache.Add("key4", "value3", 5);
+
+        //Act
+        cache.RemoveTag(tag);
+
+        //Assert
+        Assert.Equal(1, cache.Count());
+    }
+
+    [Fact]
     public void Add_GetValue()
     {
         //Arrange

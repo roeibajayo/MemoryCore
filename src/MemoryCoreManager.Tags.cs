@@ -7,6 +7,9 @@ public partial class MemoryCoreManager : IMemoryCore
     /// </summary>
     public IEnumerable<string> GetTags()
     {
+        if (entries.Values.Count == 0)
+            return Enumerable.Empty<string>();
+
         return entries.Values
             .Where(x => x.Tags is not null)
             .SelectMany(x => x.Tags)
@@ -20,6 +23,9 @@ public partial class MemoryCoreManager : IMemoryCore
     /// <returns>True if the tag exists, false otherwise.</returns>
     public bool ExistsTag(string tag)
     {
+        if (entries.Values.Count == 0)
+            return false;
+
         return entries.Values
             .Any(x => x.IsTagged(tag, comparer));
     }
@@ -29,8 +35,11 @@ public partial class MemoryCoreManager : IMemoryCore
     /// </summary>
     public void RemoveTag(string tag)
     {
+        if (entries.Values.Count == 0)
+            return;
+
         var keys = entries.Values
-            .Where(x => x.Tags.Any(x => x.Equals(tag, comparer)))
+            .Where(x => x.Tags?.Any(x => x?.Equals(tag, comparer) ?? false) ?? false)
             .Select(x => x.Key);
 
         foreach (var key in keys)
