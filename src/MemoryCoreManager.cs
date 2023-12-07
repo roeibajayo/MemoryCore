@@ -57,7 +57,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             Persist = persist,
             Key = key,
             Value = value,
-            Tags = tags,
+            Tags = tags?.Where(x => !string.IsNullOrEmpty(x)).ToArray(),
             AbsoluteExpiration = expiration
         };
         entries[key] = entry;
@@ -79,7 +79,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             Persist = persist,
             Key = key,
             Value = value,
-            Tags = tags,
+            Tags = tags?.Where(x => !string.IsNullOrEmpty(x)).ToArray(),
             AbsoluteExpiration = expiration,
             SlidingExpiration = (long)duration.TotalMilliseconds
         };

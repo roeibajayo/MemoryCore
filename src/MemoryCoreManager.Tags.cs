@@ -12,7 +12,7 @@ public partial class MemoryCoreManager : IMemoryCore
 
         return entries.Values
             .Where(x => x.Tags is not null)
-            .SelectMany(x => x.Tags)
+            .SelectMany(x => x.Tags!)
             .Distinct();
     }
 
@@ -39,7 +39,7 @@ public partial class MemoryCoreManager : IMemoryCore
             return;
 
         var keys = entries.Values
-            .Where(x => x.Tags?.Any(x => x?.Equals(tag, comparer) ?? false) ?? false)
+            .Where(x => x.IsTagged(tag, comparer))
             .Select(x => x.Key);
 
         foreach (var key in keys)

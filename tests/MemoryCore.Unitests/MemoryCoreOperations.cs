@@ -385,6 +385,73 @@ public class MemoryCoreOperations
     }
 
     [Fact]
+    public void EmptyTag_Remove_NoError()
+    {
+        //Arrange
+        using var cache = new MemoryCoreManager();
+        cache.Add("key1", "value", 5, null);
+        cache.Add("key2", "value", 5, []);
+        cache.Add("key3", "value", 5, [null]);
+        cache.Add("key4", "value", 5, [null, string.Empty]);
+        cache.Add("key5", null as string, 5);
+
+        //Act
+        cache.RemoveTag("fake-tag");
+
+        //Assert
+        Assert.Equal(5, cache.Count());
+    }
+
+    [Fact]
+    public void NoKeys_Remove_NoError()
+    {
+        //Arrange
+        using var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Remove("fake-tag");
+
+        //Assert
+        Assert.Equal(0, cache.Count());
+    }
+
+    [Fact]
+    public void NoKeys_RemoveTag_NoError()
+    {
+        //Arrange
+        using var cache = new MemoryCoreManager();
+
+        //Act
+        cache.RemoveTag("fake-tag");
+
+        //Assert
+        Assert.Equal(0, cache.Count());
+    }
+
+    [Fact]
+    public async Task Exception_RemoveTage_NoError()
+    {
+        //Arrange
+        var tag = "exists";
+        using var cache = new MemoryCoreManager();
+        try
+        {
+            await cache.TryGetOrAddAsync("key", async () =>
+            {
+                throw new Exception();
+                return 0;
+            }, TimeSpan.FromSeconds(50), tags: [tag]);
+        }
+        catch { }
+
+        //Act
+        cache.RemoveTag(tag);
+
+        //Assert
+        Assert.Equal(0, cache.Count());
+    }
+
+    [Fact]
     public void Add_GetValue()
     {
         //Arrange

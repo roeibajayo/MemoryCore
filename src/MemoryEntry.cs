@@ -20,7 +20,13 @@ namespace MemoryCore
 
         internal bool IsTagged(string tag, StringComparison comparer)
         {
-            return Tags?.Any(x => x.Equals(tag, comparer)) ?? false;
+            if (string.IsNullOrEmpty(tag))
+                return false;
+
+            if (Tags is null || Tags.Length == 0)
+                return false;
+
+            return Tags.Any(x => x.Equals(tag, comparer));
         }
 
         internal void Touch(long date)
