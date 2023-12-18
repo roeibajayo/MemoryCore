@@ -20,7 +20,27 @@ internal class JsonPersistedStore : IPersistedStore
                 yield break;
 
             var json = File.ReadAllText(path);
-            var persistedEntries = JsonSerializer.Deserialize<JsonPersistedEntry[]>(json);
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                File.Delete(path);
+                yield break;
+            }
+
+            JsonPersistedEntry[]? persistedEntries = null;
+            try
+            {
+                persistedEntries = JsonSerializer.Deserialize<JsonPersistedEntry[]>(json)!;
+
+                if (persistedEntries is null || persistedEntries.Length == 0)
+                    throw new JsonException();
+            }
+            catch
+            {
+                File.Delete(path);
+                yield break;
+            }
+
             if (persistedEntries is null)
                 yield break;
 
