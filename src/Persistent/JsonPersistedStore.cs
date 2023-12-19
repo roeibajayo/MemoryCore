@@ -49,12 +49,19 @@ internal class JsonPersistedStore : IPersistedStore
                 if (entry is null)
                     continue;
 
-                var jsonValue = (JsonElement)entry.Value!;
-                var value = jsonValue.Deserialize(Type.GetType(entry.ValueType)!, new JsonSerializerOptions
+                try
                 {
-                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                });
-                entry.Value = value!;
+                    var jsonValue = (JsonElement)entry.Value!;
+                    var value = jsonValue.Deserialize(Type.GetType(entry.ValueType)!, new JsonSerializerOptions
+                    {
+                        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    });
+                    entry.Value = value!;
+                }
+                catch
+                {
+                    continue;
+                }
 
                 yield return entry;
             }
