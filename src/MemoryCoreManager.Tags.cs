@@ -3,12 +3,26 @@
 public partial class MemoryCoreManager : IMemoryCore
 {
     /// <summary>
+    /// Get all keys in the cache by tag name.
+    /// </summary>
+    public IEnumerable<string> GetKeys(string tag)
+    {
+        if (entries.Values.Count == 0)
+            return [];
+
+        return entries.Values
+            .Where(x => x.IsTagged(tag, comparer))
+            .Select(x => x.Key)
+            .Distinct();
+    }
+
+    /// <summary>
     /// Get all tags in the cache.
     /// </summary>
     public IEnumerable<string> GetTags()
     {
         if (entries.Values.Count == 0)
-            return Enumerable.Empty<string>();
+            return [];
 
         return entries.Values
             .Where(x => x.Tags is not null)
@@ -35,14 +49,19 @@ public partial class MemoryCoreManager : IMemoryCore
     /// </summary>
     public void RemoveTag(string tag)
     {
-        if (entries.Values.Count == 0)
+        if (this.entries.Values.Count == 0)
             return;
 
-        var keys = entries.Values
+        var entries = this.entries.Values
             .Where(x => x.IsTagged(tag, comparer))
-            .Select(x => x.Key);
+            .ToArray();
 
-        foreach (var key in keys)
-            entries.TryRemove(key, out _);
+        if (entries.Length == 0)
+            return;
+
+        foreach (var entry in entries)
+            this.entries.TryRemove(entry.Key, out _);
+
+        persistedStore.Delete(Name, comparer, entries.Where(x => x.Persist).Select(x => x.Key));
     }
 }

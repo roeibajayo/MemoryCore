@@ -27,6 +27,31 @@ public class MemoryCoreOperations
     }
 
     [Fact]
+    public void Persist_DeleteByTag_Reload_KeyNotExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var tag = "tag";
+        var minutes = 5;
+        var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Add(key, value, TimeSpan.FromMinutes(minutes), tags: [tag], persist: true);
+        cache.RemoveTag(tag);
+        var exists = cache.Exists(key);
+
+        cache.Dispose();
+        cache = new MemoryCoreManager();
+
+        //Assert
+        Assert.False(exists);
+        Assert.False(cache.Exists(key));
+
+        cache.Clear();
+    }
+
+    [Fact]
     public void Persist_Expired_ResetInstance_KeyNotExists()
     {
         //Arrange

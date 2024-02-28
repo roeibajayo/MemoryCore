@@ -97,6 +97,7 @@ internal class JsonPersistedStore : IPersistedStore
         lock (LOCKER)
         {
             var entries = GetAll(name).ToList();
+            var save = false;
 
             foreach (var key in keys)
             {
@@ -104,8 +105,12 @@ internal class JsonPersistedStore : IPersistedStore
                 if (currentEntry == -1)
                     continue;
 
+                save = true;
                 entries.RemoveAt(currentEntry);
             }
+
+            if (!save)
+                return;
 
             Save(name, entries);
         }
