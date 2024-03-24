@@ -49,8 +49,8 @@ namespace MemoryCore
         }
 
         //ICacheEntry:
-        public IList<IChangeToken> ExpirationTokens => new List<IChangeToken>();
-        public IList<PostEvictionCallbackRegistration> PostEvictionCallbacks => new List<PostEvictionCallbackRegistration>();
+        public IList<IChangeToken> ExpirationTokens => [];
+        public IList<PostEvictionCallbackRegistration> PostEvictionCallbacks => [];
         public CacheItemPriority Priority { get => CacheItemPriority.Normal; set { } }
         public long? Size { get => default; set { } }
         object ICacheEntry.Key => Key;
