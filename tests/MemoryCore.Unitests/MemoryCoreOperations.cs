@@ -1,4 +1,6 @@
-﻿namespace MemoryCore.Unitests;
+﻿using System.Threading.Tasks;
+
+namespace MemoryCore.Unitests;
 
 public class MemoryCoreOperations
 {
@@ -264,12 +266,14 @@ public class MemoryCoreOperations
         var executions = 0;
 
         //Act
-        cache.TryGetOrAdd(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        cache.TryGetOrAdd(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var value1 = cache.TryGetOrAdd(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var value2 = cache.TryGetOrAdd(key, () => { executions++; return value; }, TimeSpan.FromMinutes(minutes));
 
         //Assert
         Assert.Equal(1, executions);
-        Assert.True(cache.Exists(key));
+        Assert.Equal(value, cache.Get<string>(key));
+        Assert.Equal(value, value1);
+        Assert.Equal(value, value2);
     }
 
     [Fact]
@@ -286,11 +290,14 @@ public class MemoryCoreOperations
         var task1 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
         var task2 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
         var task3 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        await Task.WhenAll(task1, task2);
+        await Task.WhenAll(task1, task2, task3);
 
         //Assert
         Assert.Equal(1, executions);
-        Assert.True(cache.Exists(key));
+        Assert.Equal(value, cache.Get<string>(key));
+        Assert.Equal(value, task1.Result);
+        Assert.Equal(value, task2.Result);
+        Assert.Equal(value, task3.Result);
     }
 
     [Fact]
@@ -309,7 +316,9 @@ public class MemoryCoreOperations
 
         //Assert
         Assert.Equal(1, executions);
-        Assert.True(cache.Exists(key));
+        Assert.Equal(value, cache.Get<string>(key));
+        Assert.Equal(value, value1);
+        Assert.Equal(value, value2);
     }
 
     [Fact]
@@ -361,7 +370,7 @@ public class MemoryCoreOperations
         cache.RemoveByPrefix(prefix);
 
         //Assert
-        Assert.Equal(0, cache.Count());
+        Assert.Equal(0, cache.Count);
     }
 
     [Fact]
@@ -375,7 +384,7 @@ public class MemoryCoreOperations
         cache.Remove(key);
 
         //Assert
-        Assert.Equal(0, cache.Count());
+        Assert.Equal(0, cache.Count);
     }
 
     [Fact]
@@ -390,7 +399,7 @@ public class MemoryCoreOperations
         cache.RemoveTag(tag);
 
         //Assert
-        Assert.Equal(1, cache.Count());
+        Assert.Equal(1, cache.Count);
     }
 
     [Fact]
@@ -399,17 +408,17 @@ public class MemoryCoreOperations
         //Arrange
         var tag = "exists";
         using var cache = new MemoryCoreManager();
-        cache.Add("key", "value", 5, tag);
-        cache.TryGetOrAdd("key2", () => "value2", TimeSpan.FromSeconds(50), tags: [tag]);
-        await cache.TryGetOrAddAsync("key3", () => Task.FromResult("value2"), TimeSpan.FromSeconds(50), tags: [tag]);
-        cache.TryGetOrAdd<string?>("key4", () => null, TimeSpan.FromSeconds(50), tags: null);
-        cache.Add("key4", "value3", 5);
+        cache.Add("key", "value", 5, tag); //will be deleted
+        cache.TryGetOrAdd("key2", () => "value2", TimeSpan.FromSeconds(50), tags: [tag]); //will be deleted
+        await cache.TryGetOrAddAsync("key3", () => Task.FromResult("value2"), TimeSpan.FromSeconds(50), tags: [tag]); //will be deleted
+        cache.TryGetOrAdd<string?>("key4", () => null, TimeSpan.FromSeconds(50), tags: null); //will NOT be deleted
+        cache.Add("key4", "value3", 5); //will NOT be deleted but key is already exists
 
         //Act
         cache.RemoveTag(tag);
 
         //Assert
-        Assert.Equal(1, cache.Count());
+        Assert.Equal(1, cache.Count);
     }
 
     [Fact]
@@ -427,7 +436,7 @@ public class MemoryCoreOperations
         cache.RemoveTag("fake-tag");
 
         //Assert
-        Assert.Equal(5, cache.Count());
+        Assert.Equal(5, cache.Count);
     }
 
     [Fact]
@@ -440,7 +449,7 @@ public class MemoryCoreOperations
         cache.Remove("fake-tag");
 
         //Assert
-        Assert.Equal(0, cache.Count());
+        Assert.Equal(0, cache.Count);
     }
 
     [Fact]
@@ -453,7 +462,7 @@ public class MemoryCoreOperations
         cache.RemoveTag("fake-tag");
 
         //Assert
-        Assert.Equal(0, cache.Count());
+        Assert.Equal(0, cache.Count);
     }
 
     [Fact]
@@ -475,7 +484,7 @@ public class MemoryCoreOperations
         cache.RemoveTag(tag);
 
         //Assert
-        Assert.Equal(0, cache.Count());
+        Assert.Equal(0, cache.Count);
     }
 
     [Fact]

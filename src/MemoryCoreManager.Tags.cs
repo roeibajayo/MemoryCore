@@ -10,8 +10,9 @@ public partial class MemoryCoreManager : IMemoryCore
         if (entries.Values.Count == 0)
             return [];
 
+        var now = dateTimeOffsetProvider.Now;
         return entries.Values
-            .Where(x => x.IsTagged(tag, comparer))
+            .Where(x => !x.IsExpired(now) && x.IsTagged(tag, comparer))
             .Select(x => x.Key)
             .Distinct();
     }
@@ -24,8 +25,9 @@ public partial class MemoryCoreManager : IMemoryCore
         if (entries.Values.Count == 0)
             return [];
 
+        var now = dateTimeOffsetProvider.Now;
         return entries.Values
-            .Where(x => x.Tags is not null)
+            .Where(x => !x.IsExpired(now) && x.Tags is not null)
             .SelectMany(x => x.Tags!)
             .Distinct();
     }
@@ -40,8 +42,9 @@ public partial class MemoryCoreManager : IMemoryCore
         if (entries.Values.Count == 0)
             return false;
 
+        var now = dateTimeOffsetProvider.Now;
         return entries.Values
-            .Any(x => x.IsTagged(tag, comparer));
+            .Any(x => !x.IsExpired(now) && x.IsTagged(tag, comparer));
     }
 
     /// <summary>
@@ -52,16 +55,22 @@ public partial class MemoryCoreManager : IMemoryCore
         if (this.entries.Values.Count == 0)
             return;
 
+        var now = dateTimeOffsetProvider.Now;
         var entries = this.entries.Values
-            .Where(x => x.IsTagged(tag, comparer))
-            .ToArray();
+            .Where(x => !x.IsExpired(now) && x.IsTagged(tag, comparer));
 
-        if (entries.Length == 0)
-            return;
-
+        var deletePersistedKeys = new List<string>();
         foreach (var entry in entries)
+        {
             this.entries.TryRemove(entry.Key, out _);
 
-        persistedStore.Delete(Name, comparer, entries.Where(x => x.Persist).Select(x => x.Key));
+            if (entry.Persist)
+                deletePersistedKeys.Add(entry.Key);
+        }
+
+        if (deletePersistedKeys.Count == 0)
+            return;
+
+        persistedStore.Delete(Name, comparer, deletePersistedKeys);
     }
 }

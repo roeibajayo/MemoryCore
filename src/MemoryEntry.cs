@@ -25,12 +25,13 @@ namespace MemoryCore
             if (string.IsNullOrEmpty(tag))
                 return false;
 
-            if (Tags is null || Tags.Length == 0)
+            if (Tags is null or { Length: 0 })
                 return false;
 
-            for (var i = 0; i < Tags.Length; i++)
+            var span = Tags.AsSpan();
+            for (var i = 0; i < span.Length; i++)
             {
-                if (Tags[i].Equals(tag, comparer))
+                if (span[i].Equals(tag, comparer))
                     return true;
             }
 

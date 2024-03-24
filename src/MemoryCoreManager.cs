@@ -60,7 +60,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             Persist = persist,
             Key = key,
             Value = value,
-            Tags = tags?.Where(x => !string.IsNullOrEmpty(x)).ToArray(),
+            Tags = GetCleanTags(tags),
             AbsoluteExpiration = expiration
         };
         entries[key] = entry;
@@ -70,7 +70,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// <summary>
     /// Add a new item to the cache with a sliding expiration.
     /// </summary>
-    public void AddSliding(string key, object value, TimeSpan duration, TimeSpan? absoluteExpiration = null, string[]? tags = null, bool persist = false)
+    public void AddSliding(string key, object value, TimeSpan duration, TimeSpan? absoluteExpiration = null,
+        string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -85,7 +86,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             Persist = persist,
             Key = key,
             Value = value,
-            Tags = tags?.Where(x => !string.IsNullOrEmpty(x)).ToArray(),
+            Tags = GetCleanTags(tags),
             AbsoluteExpiration = expiration,
             SlidingExpiration = (long)duration.TotalMilliseconds
         };
@@ -94,17 +95,32 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         TryInsertPersistedEntry(entry);
     }
 
+    private static string[]? GetCleanTags(string[]? tags)
+    {
+        if (tags is null)
+            return null;
+
+        var result = new List<string>(tags.Length);
+        var span = tags.AsSpan();
+        for (var i = 0; i < tags.Length; i++)
+        {
+            var tag = span[i];
+            if (!string.IsNullOrWhiteSpace(tag))
+                result.Add(tag);
+        }
+
+        if (result.Count == 0)
+            return null;
+
+        return [.. result];
+    }
+
     /// <summary>
     /// Check if an item exists in the cache.
     /// </summary>
     /// <returns>True if the item exists, false otherwise.</returns>
-    public bool Exists(string key)
-    {
-        if (string.IsNullOrEmpty(key))
-            throw new ArgumentNullException(nameof(key));
-
-        return TryGet(key, out _);
-    }
+    public bool Exists(string key) =>
+        TryGet(key, out _);
 
     /// <summary>
     /// Get all keys in the cache.
@@ -187,7 +203,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool forceSet = false, 
+    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool forceSet = false,
         string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
@@ -232,8 +248,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration, 
-        bool forceSet = false, string[]? tags = null, bool persist = false)
+    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration,
+        CancellationToken? cancellationToken = null, bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -244,10 +260,12 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             if (forcesetLocker.locked)
             {
                 forcesetLocker.Dispose();
-                return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, forceSet, tags);
+                return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, cancellationToken, forceSet, tags);
             }
 
-            var value = await getValueFunction();
+            var value = cancellationToken is null ?
+                await getValueFunction() :
+                await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
 
             if (value is not null)
                 Add(key, value, absoluteExpiration, tags, persist);
@@ -262,10 +280,12 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (locker.locked)
         {
             locker.Dispose();
-            return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
+            return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, cancellationToken, forceSet, tags, persist);
         }
 
-        item = await getValueFunction();
+        item = cancellationToken is null ?
+            await getValueFunction() :
+            await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
 
         if (item is not null)
             Add(key, item, absoluteExpiration, tags, persist);
@@ -277,7 +297,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, 
+    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null,
         bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
@@ -308,15 +328,18 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration, 
-        TimeSpan? absoluteExpiration = null, bool forceSet = false, string[]? tags = null, bool persist = false)
+    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration,
+        CancellationToken? cancellationToken = null, TimeSpan? absoluteExpiration = null, bool forceSet = false,
+        string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
         if (forceSet)
         {
-            var value = await getValueFunction();
+            var value = cancellationToken is null ?
+                await getValueFunction() :
+                await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
 
             if (value is not null)
                 AddSliding(key, value, duration, absoluteExpiration, tags, persist);
@@ -327,7 +350,9 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (TryGet(key, out T? item))
             return item;
 
-        item = await getValueFunction();
+        item = cancellationToken is null ?
+            await getValueFunction() :
+            await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
 
         if (item is not null)
             AddSliding(key, item, duration, absoluteExpiration, tags, persist);
@@ -338,7 +363,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// <summary>
     /// Get the number of items in the cache.
     /// </summary>
-    public int Count() =>
+    public int Count =>
         entries.Count;
 
     internal void ClearExpired()
@@ -418,8 +443,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             Value = entry.Value!,
             Tags = entry.Tags,
             AbsoluteExpiration = entry.AbsoluteExpiration is null ?
-                    null :
-                    nowOffset.AddMilliseconds(entry.AbsoluteExpiration.Value - now),
+                null :
+                nowOffset.AddMilliseconds(entry.AbsoluteExpiration.Value - now),
             SlidingExpiration = entry.SlidingExpiration,
         });
     }

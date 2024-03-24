@@ -5,66 +5,65 @@ namespace MemoryCore.Persistent;
 
 internal class JsonPersistedStore : IPersistedStore
 {
-    private static readonly object LOCKER = new();
+    private readonly object LOCKER = new();
 
     private string GetPath(string name) =>
         Path.Combine(AppContext.BaseDirectory, $"{name}.json");
 
-    public IEnumerable<PersistedEntry> GetAll(string name)
+    public IList<PersistedEntry> GetAll(string name)
     {
         lock (LOCKER)
         {
             var path = GetPath(name);
 
             if (!File.Exists(path))
-                yield break;
+                return [];
 
             var json = File.ReadAllText(path);
 
             if (string.IsNullOrWhiteSpace(json))
             {
                 File.Delete(path);
-                yield break;
+                return [];
             }
 
             JsonPersistedEntry[]? persistedEntries = null;
             try
             {
                 persistedEntries = JsonSerializer.Deserialize<JsonPersistedEntry[]>(json)!;
-
-                if (persistedEntries is null || persistedEntries.Length == 0)
-                    throw new JsonException();
             }
             catch
             {
                 File.Delete(path);
-                yield break;
+                return [];
             }
 
-            if (persistedEntries is null)
-                yield break;
+            if (persistedEntries is null or { Length: 0 })
+                return [];
 
+            var options = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+            var result = new List<PersistedEntry>(persistedEntries.Length);
             foreach (var entry in persistedEntries)
             {
-                if (entry is null)
-                    continue;
-
                 try
                 {
                     var jsonValue = (JsonElement)entry.Value!;
-                    var value = jsonValue.Deserialize(Type.GetType(entry.ValueType)!, new JsonSerializerOptions
-                    {
-                        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-                    });
+                    var value = jsonValue.Deserialize(Type.GetType(entry.ValueType)!, options);
                     entry.Value = value!;
                 }
                 catch
                 {
+                    // Ignore invalid entries like corrupted or old or unsupported types
                     continue;
                 }
 
-                yield return entry;
+                result.Add(entry);
             }
+
+            return result;
         }
     }
     public void Clear(string name)
@@ -83,8 +82,8 @@ internal class JsonPersistedStore : IPersistedStore
     {
         lock (LOCKER)
         {
-            var entries = GetAll(name).ToList();
-            var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
+            var entries = GetAll(name) as List<PersistedEntry>;
+            var currentEntry = entries!.FindIndex(x => x.Key.Equals(key, comparer));
             if (currentEntry != -1)
                 entries.RemoveAt(currentEntry);
 
@@ -96,12 +95,12 @@ internal class JsonPersistedStore : IPersistedStore
     {
         lock (LOCKER)
         {
-            var entries = GetAll(name).ToList();
+            var entries = GetAll(name) as List<PersistedEntry>;
             var save = false;
 
             foreach (var key in keys)
             {
-                var currentEntry = entries.FindIndex(x => x.Key.Equals(key, comparer));
+                var currentEntry = entries!.FindIndex(x => x.Key.Equals(key, comparer));
                 if (currentEntry == -1)
                     continue;
 
@@ -112,7 +111,7 @@ internal class JsonPersistedStore : IPersistedStore
             if (!save)
                 return;
 
-            Save(name, entries);
+            Save(name, entries!);
         }
     }
 
