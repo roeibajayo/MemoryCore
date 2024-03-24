@@ -17,7 +17,7 @@ public class KeyedLockerTests
             .Select(async i =>
             {
                 var key = Convert.ToInt32(Math.Ceiling((double)i / concurrency));
-                using (await asyncKeyedLocker.LockAsync(key))
+                using (await asyncKeyedLocker.LockAsync(key, CancellationToken.None))
                 {
                     await Task.Delay(20);
                     concurrentQueue.Enqueue((true, key));
@@ -69,7 +69,7 @@ public class KeyedLockerTests
             .Select(async i =>
             {
                 var key = Convert.ToInt32(Math.Ceiling((double)i / concurrency));
-                using (await asyncKeyedLocker.LockAsync(key))
+                using (await asyncKeyedLocker.LockAsync(key, CancellationToken.None))
                 {
                     concurrentQueue.Enqueue((true, key));
                     concurrentQueue.Enqueue((false, key));
@@ -120,7 +120,7 @@ public class KeyedLockerTests
             .Select(async i =>
             {
                 var key = index++ % range;
-                using var locker = await asyncKeyedLocker.LockAsync(key);
+                using var locker = await asyncKeyedLocker.LockAsync(key, CancellationToken.None);
                 if (!locker.locked)
                     queue.Enqueue(key);
                 await Task.Delay(100);

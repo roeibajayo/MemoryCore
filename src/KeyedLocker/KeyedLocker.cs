@@ -2,6 +2,10 @@
 
 namespace MemoryCore.KeyedLocker;
 
+/// <summary>
+/// Represents a list of lockers that can be used to lock threads based on a key.
+/// </summary>
+/// <typeparam name="TKey"></typeparam>
 internal sealed class KeyedLocker<TKey> where TKey : notnull
 {
     internal readonly ConcurrentDictionary<TKey, LockerItem<TKey>> lockers = [];
@@ -36,13 +40,13 @@ internal sealed class KeyedLocker<TKey> where TKey : notnull
         return new Releaser<TKey>(lockers, item, locked);
     }
 
-    internal async Task<Releaser<TKey>> LockAsync(TKey key)
+    internal async Task<Releaser<TKey>> LockAsync(TKey key, CancellationToken cancellationToken)
     {
         var item = GetOrCreateItem(key);
         var locked = false;
         if (item.Counter.Count != 1)
         {
-            await item.Counter.Semaphore!.WaitAsync();
+            await item.Counter.Semaphore!.WaitAsync(cancellationToken);
             locked = true;
         }
         return new Releaser<TKey>(lockers, item, locked);

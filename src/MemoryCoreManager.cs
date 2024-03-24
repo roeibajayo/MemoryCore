@@ -214,7 +214,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             using var forcesetLocker = keyedLocker.Lock(key);
             if (forcesetLocker.locked)
             {
-                forcesetLocker.Dispose();
+                forcesetLocker.Release();
                 return TryGetOrAdd(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
             }
 
@@ -232,7 +232,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         using var locker = keyedLocker.Lock(key);
         if (locker.locked)
         {
-            locker.Dispose();
+            locker.Release();
             return TryGetOrAdd(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
         }
 
@@ -256,10 +256,10 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
         if (forceSet)
         {
-            using var forcesetLocker = keyedLocker.Lock(key);
+            using var forcesetLocker = await keyedLocker.LockAsync(key, cancellationToken ?? CancellationToken.None);
             if (forcesetLocker.locked)
             {
-                forcesetLocker.Dispose();
+                forcesetLocker.Release();
                 return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, cancellationToken, forceSet, tags);
             }
 
@@ -276,10 +276,10 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (TryGet(key, out T? item))
             return item;
 
-        using var locker = keyedLocker.Lock(key);
+        using var locker = await keyedLocker.LockAsync(key, cancellationToken ?? CancellationToken.None);
         if (locker.locked)
         {
-            locker.Dispose();
+            locker.Release();
             return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, cancellationToken, forceSet, tags, persist);
         }
 

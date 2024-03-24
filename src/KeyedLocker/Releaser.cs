@@ -6,6 +6,9 @@ internal sealed class Releaser<TKey> : IDisposable
     private readonly LockerItem<TKey> item;
     private bool disposed;
 
+    /// <summary>
+    /// key was locked
+    /// </summary>
     internal readonly bool locked;
 
     internal Releaser(IDictionary<TKey, LockerItem<TKey>> semaphores, LockerItem<TKey> item, bool locked)
@@ -15,6 +18,7 @@ internal sealed class Releaser<TKey> : IDisposable
         this.locked = locked;
     }
 
+    public void Release() => Dispose();
     public void Dispose()
     {
         if (disposed)

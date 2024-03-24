@@ -290,7 +290,8 @@ public class MemoryCoreOperations
         var task1 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
         var task2 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
         var task3 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        await Task.WhenAll(task1, task2, task3);
+        var task4 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        await Task.WhenAll(task1, task2, task3, task4);
 
         //Assert
         Assert.Equal(1, executions);
@@ -298,6 +299,7 @@ public class MemoryCoreOperations
         Assert.Equal(value, task1.Result);
         Assert.Equal(value, task2.Result);
         Assert.Equal(value, task3.Result);
+        Assert.Equal(value, task4.Result);
     }
 
     [Fact]
