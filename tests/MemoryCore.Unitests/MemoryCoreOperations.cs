@@ -63,8 +63,10 @@ public class MemoryCoreOperations
         //Act
         cache.Add(key, value, TimeSpan.FromMinutes(minutes), persist: true);
         cache.Dispose();
-        cache = new MemoryCoreManager();
-        cache.dateTimeOffsetProvider = new DateTimeOffsetProvider(TimeSpan.FromMinutes(minutes + 1));
+        cache = new()
+        {
+            dateTimeOffsetProvider = new DateTimeOffsetProvider(TimeSpan.FromMinutes(minutes + 1))
+        };
 
         //Assert
         Assert.False(cache.Exists(key));
@@ -281,8 +283,9 @@ public class MemoryCoreOperations
         var executions = 0;
 
         //Act
-        var task1 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        var task2 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var task1 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var task2 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var task3 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
         await Task.WhenAll(task1, task2);
 
         //Assert
@@ -398,7 +401,7 @@ public class MemoryCoreOperations
         using var cache = new MemoryCoreManager();
         cache.Add("key", "value", 5, tag);
         cache.TryGetOrAdd("key2", () => "value2", TimeSpan.FromSeconds(50), tags: [tag]);
-        await cache.TryGetOrAddAsync("key3", async () => Task.FromResult("value2"), TimeSpan.FromSeconds(50), tags: [tag]);
+        await cache.TryGetOrAddAsync("key3", () => Task.FromResult("value2"), TimeSpan.FromSeconds(50), tags: [tag]);
         cache.TryGetOrAdd<string?>("key4", () => null, TimeSpan.FromSeconds(50), tags: null);
         cache.Add("key4", "value3", 5);
 
@@ -414,11 +417,11 @@ public class MemoryCoreOperations
     {
         //Arrange
         using var cache = new MemoryCoreManager();
-        cache.Add("key1", "value", 5, null);
+        cache.Add("key1", "value", 5, null!);
         cache.Add("key2", "value", 5, []);
-        cache.Add("key3", "value", 5, [null]);
-        cache.Add("key4", "value", 5, [null, string.Empty]);
-        cache.Add("key5", null as string, 5);
+        cache.Add("key3", "value", 5, [null!]);
+        cache.Add("key4", "value", 5, [null!, string.Empty]);
+        cache.Add("key5", string.Empty, 5);
 
         //Act
         cache.RemoveTag("fake-tag");
@@ -461,10 +464,9 @@ public class MemoryCoreOperations
         using var cache = new MemoryCoreManager();
         try
         {
-            await cache.TryGetOrAddAsync("key", async () =>
+            await cache.TryGetOrAddAsync<int>("key", () =>
             {
                 throw new Exception();
-                return 0;
             }, TimeSpan.FromSeconds(50), tags: [tag]);
         }
         catch { }

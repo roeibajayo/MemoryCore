@@ -1,23 +1,22 @@
-﻿namespace MemoryCore.KeyedLocker;
+﻿using System.Collections.Concurrent;
+
+namespace MemoryCore.KeyedLocker;
 
 internal sealed class KeyedLocker<TKey> where TKey : notnull
 {
-    internal readonly Dictionary<TKey, LockerItem<TKey>> lockers = new();
+    internal readonly ConcurrentDictionary<TKey, LockerItem<TKey>> lockers = [];
 
     private LockerItem<TKey> GetOrCreateItem(TKey key)
     {
-        lock (lockers)
+        if (lockers.TryGetValue(key, out var item))
         {
-            if (lockers.TryGetValue(key, out var item))
-            {
-                item.Counter.IncrementCount();
-                return item;
-            }
-
-            item = new(key, new LockerCounter<TKey>());
-            lockers.Add(key, item);
+            item.Counter.IncrementCount();
             return item;
         }
+
+        item = new(key, new LockerCounter<TKey>());
+        lockers[key] = item;
+        return item;
     }
 
     internal bool IsInUse(TKey key)
@@ -31,7 +30,7 @@ internal sealed class KeyedLocker<TKey> where TKey : notnull
         var locked = false;
         if (item.Counter.Count != 1)
         {
-            item.Counter.Semaphore.Wait();
+            item.Counter.Semaphore!.Wait();
             locked = true;
         }
         return new Releaser<TKey>(lockers, item, locked);
@@ -43,7 +42,7 @@ internal sealed class KeyedLocker<TKey> where TKey : notnull
         var locked = false;
         if (item.Counter.Count != 1)
         {
-            await item.Counter.Semaphore.WaitAsync();
+            await item.Counter.Semaphore!.WaitAsync();
             locked = true;
         }
         return new Releaser<TKey>(lockers, item, locked);

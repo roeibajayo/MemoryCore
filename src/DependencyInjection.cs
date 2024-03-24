@@ -20,7 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<IMemoryCore>(s =>
         {
             var store = s.GetService<IPersistedStore>();
-            return new MemoryCoreManager(null, keysComparison, store);
+            return new MemoryCoreManager(MemoryCoreManager.DEFAULT_NAME, keysComparison, store);
         });
         services.AddSingleton<IMemoryCache>(s => s.GetService<IMemoryCore>()!);
         return services;

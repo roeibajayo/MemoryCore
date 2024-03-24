@@ -32,7 +32,7 @@ internal sealed class Releaser<TKey> : IDisposable
             else
             {
                 item.Counter.DecrementCount();
-                item.Counter.Semaphore.Release();
+                item.Counter.Semaphore!.Release();
             }
         }
     }

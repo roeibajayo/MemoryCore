@@ -2,7 +2,7 @@
 
 internal sealed class LockerCounter<TKey>
 {
-    internal SemaphoreSlim Semaphore;
+    internal SemaphoreSlim? Semaphore;
     internal int Count { get; private set; } = 1;
 
     internal void IncrementCount()

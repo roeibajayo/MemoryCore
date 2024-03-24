@@ -7,7 +7,9 @@ namespace MemoryCore
     internal sealed class MemoryEntry : ICacheEntry
     {
         internal bool Persist { get; init; }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         internal string Key { get; init; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         internal object? Value { get; set; }
         internal string[]? Tags { get; set; }
         internal long? AbsoluteExpiration { get; set; }
@@ -26,7 +28,13 @@ namespace MemoryCore
             if (Tags is null || Tags.Length == 0)
                 return false;
 
-            return Tags.Any(x => x.Equals(tag, comparer));
+            for (var i = 0; i < Tags.Length; i++)
+            {
+                if (Tags[i].Equals(tag, comparer))
+                    return true;
+            }
+
+            return false;
         }
 
         internal void Touch(long date)

@@ -33,6 +33,11 @@ public interface IMemoryCore : IMemoryCache
     IEnumerable<string> GetKeys();
 
     /// <summary>
+    /// Get all keys in the cache by tag name.
+    /// </summary>
+    IEnumerable<string> GetKeys(string tag);
+
+    /// <summary>
     /// Get all tags in the cache.
     /// </summary>
     IEnumerable<string> GetTags();
@@ -58,28 +63,28 @@ public interface IMemoryCore : IMemoryCache
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
     T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
-        bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false);
+        bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
     Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration,
-        bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false);
+        bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
     T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null,
-        bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false);
+        bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null,
-        bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false);
+    Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan slidingExpiration, 
+        TimeSpan? absoluteExpiration = null, bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
     /// Get the number of items in the cache.

@@ -6,7 +6,7 @@ namespace MemoryCore;
 
 public sealed partial class MemoryCoreManager : IMemoryCore
 {
-    private const string DEFAULT_NAME = "MemoryCoreCache";
+    internal const string DEFAULT_NAME = "MemoryCoreCache";
     private const int clearInterval = 20 * 1000;
 
     internal readonly StringComparison comparer;
@@ -21,7 +21,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     public MemoryCoreManager() : this(StringComparison.Ordinal) { }
 
     /// <param name="stringComparison">The string comparison to use for keys.</param>
-    public MemoryCoreManager(string name) : this(name, StringComparison.Ordinal, null) { }
+    public MemoryCoreManager(string? name) : this(name, StringComparison.Ordinal, null) { }
 
     /// <param name="name">The name of the instance.</param>
     public MemoryCoreManager(StringComparison stringComparison) : this(DEFAULT_NAME, stringComparison, null) { }
@@ -30,7 +30,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// <param name="stringComparison">The string comparison to use for keys.</param>
     public MemoryCoreManager(string? name, StringComparison stringComparison, IPersistedStore? persistedStore)
     {
-        Name = string.IsNullOrWhiteSpace(name) ? DEFAULT_NAME : name;
+        Name = string.IsNullOrWhiteSpace(name) ? DEFAULT_NAME : name!;
 #if NET6_0_OR_GREATER
         var comparer = StringComparer.FromComparison(stringComparison);
 #else
@@ -49,6 +49,9 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
+
+        if (value is null)
+            throw new ArgumentNullException(nameof(value));
 
         var now = dateTimeOffsetProvider.Now;
         var expiration = now + (long)absoluteExpiration.TotalMilliseconds;
@@ -71,6 +74,9 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
+
+        if (value is null)
+            throw new ArgumentNullException(nameof(value));
 
         var now = dateTimeOffsetProvider.Now;
         var expiration = absoluteExpiration is null ? default : (now + (long)absoluteExpiration.Value.TotalMilliseconds);
@@ -134,9 +140,9 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// <returns>True if the item exists, false otherwise.</returns>
     public bool TryGet<T>(string key, out T? item)
     {
-        if (TryGet(key, out object value))
+        if (TryGet(key, out var value))
         {
-            item = (T?)value;
+            item = (T)value!;
             return true;
         }
 
@@ -181,7 +187,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false)
+    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool forceSet = false, 
+        string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -192,31 +199,32 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             if (forcesetLocker.locked)
             {
                 forcesetLocker.Dispose();
-                return TryGetOrAdd(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags, persist);
+                return TryGetOrAdd(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
             }
 
             var value = getValueFunction();
-            Add(key, value, absoluteExpiration, tags, persist);
+
+            if (value is not null)
+                Add(key, value, absoluteExpiration, tags, persist);
+
             return value;
         }
 
-        if (TryGet(key, out T item))
+        if (TryGet(key, out T? item))
             return item;
-
 
         using var locker = keyedLocker.Lock(key);
         if (locker.locked)
         {
             locker.Dispose();
-            return TryGetOrAdd(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags, persist);
+            return TryGetOrAdd(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
         }
 
         item = getValueFunction();
 
-        if (!allowDefault && item is null)
-            return item;
+        if (item is not null)
+            Add(key, item, absoluteExpiration, tags, persist);
 
-        Add(key, item, absoluteExpiration, tags, persist);
         return item;
     }
 
@@ -224,7 +232,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration, bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false)
+    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration, 
+        bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -235,30 +244,32 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             if (forcesetLocker.locked)
             {
                 forcesetLocker.Dispose();
-                return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags);
+                return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, forceSet, tags);
             }
 
             var value = await getValueFunction();
-            Add(key, value, absoluteExpiration, tags, persist);
+
+            if (value is not null)
+                Add(key, value, absoluteExpiration, tags, persist);
+
             return value;
         }
 
-        if (TryGet(key, out T item))
+        if (TryGet(key, out T? item))
             return item;
 
         using var locker = keyedLocker.Lock(key);
         if (locker.locked)
         {
             locker.Dispose();
-            return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, allowDefault, forceSet, tags, persist);
+            return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
         }
 
         item = await getValueFunction();
 
-        if (!allowDefault && item is null)
-            return item;
+        if (item is not null)
+            Add(key, item, absoluteExpiration, tags, persist);
 
-        Add(key, item, absoluteExpiration, tags, persist);
         return item;
     }
 
@@ -266,7 +277,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false)
+    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, 
+        bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -274,19 +286,21 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (forceSet)
         {
             var value = getValueFunction();
-            AddSliding(key, value, duration, absoluteExpiration, tags, persist);
+
+            if (value is not null)
+                AddSliding(key, value, duration, absoluteExpiration, tags, persist);
+
             return value;
         }
 
-        if (TryGet(key, out T item))
+        if (TryGet(key, out T? item))
             return item;
 
         item = getValueFunction();
 
-        if (!allowDefault && item is null)
-            return item;
+        if (item is not null)
+            AddSliding(key, item, duration, absoluteExpiration, tags, persist);
 
-        AddSliding(key, item, duration, absoluteExpiration, tags, persist);
         return item;
     }
 
@@ -294,7 +308,8 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null, bool allowDefault = false, bool forceSet = false, string[]? tags = null, bool persist = false)
+    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration, 
+        TimeSpan? absoluteExpiration = null, bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
@@ -302,19 +317,21 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (forceSet)
         {
             var value = await getValueFunction();
-            AddSliding(key, value, duration, absoluteExpiration, tags, persist);
+
+            if (value is not null)
+                AddSliding(key, value, duration, absoluteExpiration, tags, persist);
+
             return value;
         }
 
-        if (TryGet(key, out T item))
+        if (TryGet(key, out T? item))
             return item;
 
         item = await getValueFunction();
 
-        if (!allowDefault && item is null)
-            return item;
+        if (item is not null)
+            AddSliding(key, item, duration, absoluteExpiration, tags, persist);
 
-        AddSliding(key, item, duration, absoluteExpiration, tags, persist);
         return item;
     }
 

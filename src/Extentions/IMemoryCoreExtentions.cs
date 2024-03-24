@@ -7,14 +7,16 @@ public static class IMemoryCoreExtentions
     /// <summary>
     /// Add item to cache with absolute expiration.
     /// </summary>
-    public static void Add<T>(this IMemoryCore cache, string key, T value, int minutes, params string[] tags) =>
+    public static void Add<T>(this IMemoryCore cache, string key, T value, int minutes, params string[] tags)
+        where T : notnull =>
         cache.Add(key, value, TimeSpan.FromMinutes(minutes), tags);
 
     /// <summary>
     /// Add item to cache with sliding expiration.
     /// </summary>
     public static void AddSliding<T>(this IMemoryCore cache, string key, T value, int minutes,
-        TimeSpan? absoluteExpiration = null, params string[] tags) =>
+        TimeSpan? absoluteExpiration = null, params string[] tags)
+        where T : notnull =>
         cache.AddSliding(key, value, TimeSpan.FromMinutes(minutes), absoluteExpiration, tags);
 
     /// <summary>
