@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>12</LangVersion>
-    <Version>1.4.8</Version>
+    <Version>1.5.0</Version>
     <Authors>roeibajayo@gmail.com</Authors>
     <PackageId>MemoryCore</PackageId>
     <Company>RoeiBajayo</Company>

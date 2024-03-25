@@ -11,7 +11,7 @@ public static class IMemoryCoreExtentionsSecured
     public static Guid Add<T>(this IMemoryCore cache, T value, TimeSpan absoluteExpiration, params string[] tags)
     {
         var key = Guid.NewGuid();
-        cache.Add(SECURED_PREFIX_KEY + key, value, absoluteExpiration, tags);
+        cache.Add(SECURED_PREFIX_KEY + key, value!, absoluteExpiration, tags);
         return key;
     }
 
@@ -30,7 +30,7 @@ public static class IMemoryCoreExtentionsSecured
         TimeSpan? absoluteExpiration = null, params string[] tags)
     {
         var key = Guid.NewGuid();
-        cache.AddSliding(SECURED_PREFIX_KEY + key, value, slidingExpiration, absoluteExpiration, tags);
+        cache.AddSliding(SECURED_PREFIX_KEY + key, value!, slidingExpiration, absoluteExpiration, tags);
         return key;
     }
 

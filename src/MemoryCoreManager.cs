@@ -1,5 +1,4 @@
-﻿using MemoryCore.KeyedLocker;
-using MemoryCore.Persistent;
+﻿using MemoryCore.Persistent;
 using System.Collections.Concurrent;
 
 namespace MemoryCore;
@@ -11,7 +10,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
     internal readonly StringComparison comparer;
     internal readonly ConcurrentDictionary<string, MemoryEntry> entries;
-    internal readonly KeyedLocker<string> keyedLocker = new();
+    internal readonly ConcurrentDictionary<string, Task<object?>> workers = new();
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
     internal readonly Timer timer;
     internal readonly IPersistedStore persistedStore;
@@ -97,15 +96,27 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
     private static string[]? GetCleanTags(string[]? tags)
     {
-        if (tags is null)
+        if (tags is null or { Length: 0 })
             return null;
 
+        var span = tags.AsSpan();
+        for (var i = 0; i < tags.Length; i++)
+        {
+            var tag = span[i];
+            if (tag is null)
+                return GetNotNullTags(tags);
+        }
+
+        return tags;
+    }
+    private static string[]? GetNotNullTags(string[] tags)
+    {
         var result = new List<string>(tags.Length);
         var span = tags.AsSpan();
         for (var i = 0; i < tags.Length; i++)
         {
             var tag = span[i];
-            if (!string.IsNullOrWhiteSpace(tag))
+            if (tag is not null)
                 result.Add(tag);
         }
 
@@ -203,45 +214,11 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration, bool forceSet = false,
-        string[]? tags = null, bool persist = false)
+    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
+        bool forceSet = false, string[]? tags = null, bool persist = false)
     {
-        if (string.IsNullOrEmpty(key))
-            throw new ArgumentNullException(nameof(key));
-
-        if (forceSet)
-        {
-            using var forcesetLocker = keyedLocker.Lock(key);
-            if (forcesetLocker.locked)
-            {
-                forcesetLocker.Release();
-                return TryGetOrAdd(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
-            }
-
-            var value = getValueFunction();
-
-            if (value is not null)
-                Add(key, value, absoluteExpiration, tags, persist);
-
-            return value;
-        }
-
-        if (TryGet(key, out T? item))
-            return item;
-
-        using var locker = keyedLocker.Lock(key);
-        if (locker.locked)
-        {
-            locker.Release();
-            return TryGetOrAdd(key, getValueFunction, absoluteExpiration, forceSet, tags, persist);
-        }
-
-        item = getValueFunction();
-
-        if (item is not null)
-            Add(key, item, absoluteExpiration, tags, persist);
-
-        return item;
+        return TryGetOrAdd(key, getValueFunction, forceSet, item =>
+            Add(key, item!, absoluteExpiration, tags, persist));
     }
 
     /// <summary>
@@ -251,77 +228,19 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration,
         CancellationToken? cancellationToken = null, bool forceSet = false, string[]? tags = null, bool persist = false)
     {
-        if (string.IsNullOrEmpty(key))
-            throw new ArgumentNullException(nameof(key));
-
-        if (forceSet)
-        {
-            using var forcesetLocker = await keyedLocker.LockAsync(key, cancellationToken ?? CancellationToken.None);
-            if (forcesetLocker.locked)
-            {
-                forcesetLocker.Release();
-                return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, cancellationToken, forceSet, tags);
-            }
-
-            var value = cancellationToken is null ?
-                await getValueFunction() :
-                await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
-
-            if (value is not null)
-                Add(key, value, absoluteExpiration, tags, persist);
-
-            return value;
-        }
-
-        if (TryGet(key, out T? item))
-            return item;
-
-        using var locker = await keyedLocker.LockAsync(key, cancellationToken ?? CancellationToken.None);
-        if (locker.locked)
-        {
-            locker.Release();
-            return await TryGetOrAddAsync(key, getValueFunction, absoluteExpiration, cancellationToken, forceSet, tags, persist);
-        }
-
-        item = cancellationToken is null ?
-            await getValueFunction() :
-            await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
-
-        if (item is not null)
-            Add(key, item, absoluteExpiration, tags, persist);
-
-        return item;
+        return await TryGetOrAddAsync(key, getValueFunction, forceSet,
+            item => Add(key, item!, absoluteExpiration, tags, persist), cancellationToken ?? CancellationToken.None);
     }
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration, TimeSpan? absoluteExpiration = null,
-        bool forceSet = false, string[]? tags = null, bool persist = false)
+    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration,
+        TimeSpan? absoluteExpiration = null, bool forceSet = false, string[]? tags = null, bool persist = false)
     {
-        if (string.IsNullOrEmpty(key))
-            throw new ArgumentNullException(nameof(key));
-
-        if (forceSet)
-        {
-            var value = getValueFunction();
-
-            if (value is not null)
-                AddSliding(key, value, duration, absoluteExpiration, tags, persist);
-
-            return value;
-        }
-
-        if (TryGet(key, out T? item))
-            return item;
-
-        item = getValueFunction();
-
-        if (item is not null)
-            AddSliding(key, item, duration, absoluteExpiration, tags, persist);
-
-        return item;
+        return TryGetOrAdd(key, getValueFunction, forceSet, item =>
+            AddSliding(key, item!, duration, absoluteExpiration, tags, persist));
     }
 
     /// <summary>
@@ -332,32 +251,63 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         CancellationToken? cancellationToken = null, TimeSpan? absoluteExpiration = null, bool forceSet = false,
         string[]? tags = null, bool persist = false)
     {
+        return await TryGetOrAddAsync(key, getValueFunction, forceSet,
+            item => AddSliding(key, item!, duration, absoluteExpiration, tags, persist),
+            cancellationToken ?? CancellationToken.None);
+    }
+
+    private T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, bool forceSet, Action<T> onAdd)
+    {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
-        if (forceSet)
-        {
-            var value = cancellationToken is null ?
-                await getValueFunction() :
-                await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
-
-            if (value is not null)
-                AddSliding(key, value, duration, absoluteExpiration, tags, persist);
-
-            return value;
-        }
-
-        if (TryGet(key, out T? item))
+        if (!forceSet && TryGet(key, out T? item))
             return item;
 
-        item = cancellationToken is null ?
-            await getValueFunction() :
-            await Task.Run(async () => await getValueFunction(), cancellationToken.Value);
+        item = getValueFunction();
 
         if (item is not null)
-            AddSliding(key, item, duration, absoluteExpiration, tags, persist);
+            onAdd(item);
 
         return item;
+    }
+    private async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, bool forceSet, Action<T> onAdd,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(key))
+            throw new ArgumentNullException(nameof(key));
+
+        if (!forceSet && TryGet(key, out T? item))
+            return item;
+
+        if (!workers.TryGetValue(key, out var worker))
+        {
+            try
+            {
+                var task = Task.Run(async () =>
+                {
+                    item = await getValueFunction();
+
+                    if (item is not null)
+                        onAdd(item);
+
+                    return (object?)item;
+                }, cancellationToken);
+                workers[key] = task;
+                return (T?)await task;
+            }
+            finally
+            {
+                workers.TryRemove(key, out _);
+            }
+        }
+
+#if NET6_0_OR_GREATER
+        return (T?)await worker.WaitAsync(cancellationToken);
+#else
+        worker.Wait(cancellationToken);
+        return (T?)worker.Result;
+#endif
     }
 
     /// <summary>

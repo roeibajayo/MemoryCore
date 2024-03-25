@@ -22,8 +22,8 @@ namespace MemoryCore
 
         internal bool IsTagged(string tag, StringComparison comparer)
         {
-            if (string.IsNullOrEmpty(tag))
-                return false;
+            if (tag is null)
+                throw new ArgumentNullException(nameof(tag));
 
             if (Tags is null or { Length: 0 })
                 return false;

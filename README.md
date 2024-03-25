@@ -8,7 +8,7 @@ High-performance yet easy to use memory manager implementation in .NET.
 ## 🚀 Features
 ✔ Super FAST and low memory usage. 🔥
 
-✔ Support for joint execution for GetOrSet methods, so only 1 runs concurrently. 🔥
+✔ Support for joint execution for GetOrSetAsync methods, so only 1 runs concurrently. 🔥
 
 ✔ Support for IMemoryCahce intrerface.
 
@@ -22,18 +22,18 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 ✔ Developers friendly ❤️ Easy to use.
 
-## Benchmarks MemoryCore (1.1.0) vs System.Runtime.Caching (7.0.0):
+## Benchmarks MemoryCore (1.5.0) vs System.Runtime.Caching (8.0.0):
 
-|             Method |      Mean |    Error |    StdDev | Allocated |
-|------------------- |----------:|---------:|----------:|----------:|
-|     MemoryCore_Add |  51.19 ns | 1.044 ns |  2.356 ns |      72 B |
-|    MemoryCache_Add | 338.31 ns | 6.778 ns | 15.710 ns |     272 B |
-|                                                                   |
-|     MemoryCore_Get |  22.06 ns | 0.462 ns |  0.901 ns |         - |
-|    MemoryCache_Get |  90.27 ns | 1.673 ns |  3.380 ns |      32 B |
-|                                                                   |
-|  MemoryCore_Exists |  22.38 ns | 0.466 ns |  0.622 ns |         - |
-| MemoryCache_Exists | 348.40 ns | 6.873 ns | 14.194 ns |     752 B |
+|             Method |      Mean |    Error |   StdDev | Allocated |
+|------------------- |----------:|---------:|---------:|----------:|
+|     MemoryCore_Add |  52.32 ns | 1.036 ns | 1.383 ns |      80 B |
+|    MemoryCache_Add | 332.24 ns | 6.186 ns | 5.786 ns |     272 B |
+|                                                                  |
+|     MemoryCore_Get |  22.03 ns | 0.484 ns | 0.595 ns |         - |
+|    MemoryCache_Get |  98.35 ns | 1.961 ns | 2.685 ns |      32 B |
+|                                                                  |
+|  MemoryCore_Exists |  21.95 ns | 0.376 ns | 0.334 ns |         - |
+| MemoryCache_Exists | 329.76 ns | 5.193 ns | 4.858 ns |     752 B |
 
 ## Install & Registering:
 
