@@ -116,6 +116,73 @@ public class MemoryCoreOperations
     }
 
     [Fact]
+    public void Persist_IEnumerable_ResetInstance_KeyExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = Enumerable.Range(0, 5);
+        var minutes = 5;
+        var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Add(key, value, TimeSpan.FromMinutes(minutes), persist: true);
+        cache.Dispose();
+        cache = new MemoryCoreManager();
+        var actualValue = cache.Get<IEnumerable<int>>(key);
+
+        //Assert
+        Assert.True(cache.Exists(key));
+        Assert.Equal(value, actualValue);
+
+        cache.Clear();
+    }
+
+    [Fact]
+    public void Persist_SecondIEnumerable_ResetInstance_KeyExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = Enumerable.Range(0, 5).OrderBy(x => x);
+        var minutes = 5;
+        var cache = new MemoryCoreManager();
+
+        //Act
+        cache.Add(key, value, TimeSpan.FromMinutes(minutes), persist: true);
+        cache.Dispose();
+        cache = new MemoryCoreManager();
+        var actualValue = cache.Get<IEnumerable<int>>(key);
+
+        //Assert
+        Assert.True(cache.Exists(key));
+        Assert.Equal(value, actualValue);
+
+        cache.Clear();
+    }
+
+    [Fact]
+    public async Task PersistAsync_ResetInstance_KeyExists()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        var cache = new MemoryCoreManager();
+        var execution = 0;
+
+        //Act
+        await cache.TryGetOrAddAsync(key, async () => { execution++; await Task.Delay(100); return value; }, TimeSpan.FromMinutes(minutes), persist: true);
+        cache = new MemoryCoreManager();
+        var actualValue = await cache.TryGetOrAddAsync(key, async () => { execution++; await Task.Delay(100); return value; }, TimeSpan.FromMinutes(minutes), persist: true);
+
+        //Assert
+        Assert.True(cache.Exists(key));
+        Assert.Equal(value, actualValue);
+        Assert.Equal(1, execution);
+
+        cache.Clear();
+    }
+
+    [Fact]
     public void AddWithTag_GetTags_TagExists()
     {
         //Arrange

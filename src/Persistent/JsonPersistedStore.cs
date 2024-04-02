@@ -131,8 +131,26 @@ internal class JsonPersistedStore : IPersistedStore
             Tags = entry.Tags,
             AbsoluteExpiration = entry.AbsoluteExpiration,
             SlidingExpiration = entry.SlidingExpiration,
-            ValueType = entry.Value.GetType().AssemblyQualifiedName!
+            ValueType = GetSerializableType(entry.Value.GetType()).AssemblyQualifiedName!
         }));
         File.WriteAllText(path, json);
+    }
+
+    private static Type GetSerializableType(Type type)
+    {
+        if (type.IsArray || type.IsPrimitive || type.IsValueType || type.IsSerializable)
+            return type;
+
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            return GetSerializableType(type.GetGenericArguments()[0]);
+
+        var enumerableType = type.GetInterfaces().FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+        if (enumerableType is not null)
+        {
+            var elementType = enumerableType.GetGenericArguments()[0];
+            return elementType.MakeArrayType();
+        }
+
+        return type;
     }
 }
