@@ -1,4 +1,5 @@
-﻿using MemoryCore.Persistent;
+﻿using MemoryCore.KeyedLocker;
+using MemoryCore.Persistent;
 using System.Collections.Concurrent;
 
 namespace MemoryCore;
@@ -10,7 +11,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
     internal readonly StringComparison comparer;
     internal readonly ConcurrentDictionary<string, MemoryEntry> entries;
-    internal readonly ConcurrentDictionary<string, Task<object?>> workers = new();
+    internal readonly KeyedLocker<string> lockers = new();
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
     internal readonly Timer timer;
     internal readonly IPersistedStore persistedStore;
@@ -280,9 +281,11 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (!forceSet && TryGet(key, out T? item))
             return item;
 
-        if (!workers.TryGetValue(key, out var worker))
+        var worker = await lockers.TryLockAsync(key);
+
+        if (worker != null)
         {
-            try
+            using (worker)
             {
                 var task = Task.Run(async () =>
                 {
@@ -293,21 +296,23 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
                     return (object?)item;
                 }, cancellationToken);
-                workers[key] = task;
                 return (T?)await task;
-            }
-            finally
-            {
-                workers.TryRemove(key, out _);
             }
         }
 
+        var locker = lockers.LockAsync(key);
+
 #if NET6_0_OR_GREATER
-        return (T?)await worker.WaitAsync(cancellationToken);
+        worker = await locker.WaitAsync(cancellationToken);
 #else
-        worker.Wait(cancellationToken);
-        return (T?)worker.Result;
+        locker.Wait(cancellationToken);
+        worker = locker.Result;
 #endif
+
+        using (worker)
+        {
+            return TryGet(key, out var x) ? (T?)x! : default;
+        }
     }
 
     /// <summary>

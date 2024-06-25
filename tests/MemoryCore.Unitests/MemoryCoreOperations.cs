@@ -343,30 +343,42 @@ public class MemoryCoreOperations
         Assert.Equal(value, value2);
     }
 
-    [Fact]
-    public async Task TryGetOrAddAsyncParallel_OnlyFirstExecuted_RetrunValue()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TryGetOrAddAsyncParallel_OnlyFirstExecuted_RetrunValue(bool spread)
     {
         //Arrange
         var key = "key";
         var value = "ok";
         var minutes = 5;
         using var cache = new MemoryCoreManager();
+        var tries = 30;
         var executions = 0;
+        var random = new Random();
 
         //Act
-        var task1 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        var task2 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        var task3 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        var task4 = cache.TryGetOrAddAsync(key, async () => { await Task.Delay(500); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        await Task.WhenAll(task1, task2, task3, task4);
+        var tasks = Enumerable.Range(0, tries)
+            .Select(async x =>
+            {
+                if (spread) await Task.Delay(random.Next(500));
+                return await cache.TryGetOrAddAsync(key, async () =>
+                {
+                    await Task.Delay(random.Next(500));
+                    executions++;
+                    return value;
+                }, TimeSpan.FromMinutes(minutes));
+            })
+            .ToArray();
+        await Task.WhenAll(tasks);
 
         //Assert
         Assert.Equal(1, executions);
         Assert.Equal(value, cache.Get<string>(key));
-        Assert.Equal(value, task1.Result);
-        Assert.Equal(value, task2.Result);
-        Assert.Equal(value, task3.Result);
-        Assert.Equal(value, task4.Result);
+        foreach (var task in tasks)
+        {
+            Assert.Equal(value, task.Result);
+        }
     }
 
     [Fact]
