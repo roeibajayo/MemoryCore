@@ -356,21 +356,26 @@ public class MemoryCoreOperations
         var tries = 30;
         var executions = 0;
         var random = new Random();
+        Task<string?>[] tasks = [];
 
         //Act
-        var tasks = Enumerable.Range(0, tries)
-            .Select(async x =>
-            {
-                if (spread) await Task.Delay(random.Next(500));
-                return await cache.TryGetOrAddAsync(key, async () =>
+        for (var i = 0; i < 3; i++)
+        {
+            tasks = Enumerable.Range(0, tries)
+                .Select(async x =>
                 {
-                    await Task.Delay(random.Next(500));
-                    executions++;
-                    return value;
-                }, TimeSpan.FromMinutes(minutes));
-            })
-            .ToArray();
-        await Task.WhenAll(tasks);
+                    if (spread) await Task.Delay(random.Next(500));
+                    return await cache.TryGetOrAddAsync(key, async () =>
+                    {
+                        await Task.Delay(random.Next(500));
+                        executions++;
+                        return value;
+                    }, TimeSpan.FromMinutes(minutes));
+                })
+                .ToArray();
+            await Task.WhenAll(tasks);
+            await Task.Delay(50);
+        }
 
         //Assert
         Assert.Equal(1, executions);

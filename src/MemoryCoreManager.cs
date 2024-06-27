@@ -287,32 +287,28 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         {
             using (worker)
             {
-                var task = Task.Run(async () =>
-                {
-                    item = await getValueFunction();
+                if (cancellationToken == CancellationToken.None)
+                    return await GetAndSetAsync(getValueFunction, onAdd);
 
-                    if (item is not null)
-                        onAdd(item);
-
-                    return (object?)item;
-                }, cancellationToken);
-                return (T?)await task;
+                var task = Task.Run(async () => await GetAndSetAsync(getValueFunction, onAdd), cancellationToken);
+                return await task;
             }
         }
 
-        var locker = lockers.LockAsync(key);
+        using var locker = cancellationToken == CancellationToken.None ?
+            await lockers.LockAsync(key) :
+            await Task.Run(async () => await lockers.LockAsync(key), cancellationToken);
+        return TryGet(key, out var x) ? (T?)x! : default;
+    }
 
-#if NET6_0_OR_GREATER
-        worker = await locker.WaitAsync(cancellationToken);
-#else
-        locker.Wait(cancellationToken);
-        worker = locker.Result;
-#endif
+    private async Task<T> GetAndSetAsync<T>(Func<Task<T>> getValueFunction, Action<T> onAdd)
+    {
+        var item = await getValueFunction();
 
-        using (worker)
-        {
-            return TryGet(key, out var x) ? (T?)x! : default;
-        }
+        if (item is not null)
+            onAdd(item);
+
+        return item;
     }
 
     /// <summary>
