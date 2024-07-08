@@ -6,6 +6,7 @@
 /// <typeparam name="TKey"></typeparam>
 public sealed class KeyedLocker<TKey> where TKey : notnull
 {
+    internal readonly object locker = new();
     internal readonly Dictionary<TKey, LockedItem<TKey>> lockers = [];
 
     /// <summary>
@@ -38,17 +39,17 @@ public sealed class KeyedLocker<TKey> where TKey : notnull
     /// <param name="key"></param>
     /// <returns></returns>
     public IDisposable Lock(TKey key) =>
-        InternalLock(key, false, TimeSpan.Zero)!;
+        InternalLock(key, false, CancellationToken.None)!;
 
     /// <summary>
-    /// Locks the key. If the key is already locked, it will wait until the timeout, then throw a TimeoutException.
+    /// Locks the key. If the key is already locked, it will wait until the cancellationToken, then throw a TimeoutException.
     /// </summary>
     /// <param name="key"></param>
-    /// <param name="timeout"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="TimeoutException"></exception>
-    public IDisposable Lock(TKey key, TimeSpan timeout) =>
-        InternalLock(key, false, timeout)!;
+    public IDisposable Lock(TKey key, CancellationToken cancellationToken) =>
+        InternalLock(key, false, cancellationToken)!;
 
     /// <summary>
     /// Tries to lock the key. If the key is already locked, it will return null.
@@ -56,7 +57,7 @@ public sealed class KeyedLocker<TKey> where TKey : notnull
     /// <param name="key"></param>
     /// <returns></returns>
     public IDisposable? TryLock(TKey key) =>
-        InternalLock(key, true, TimeSpan.Zero);
+        InternalLock(key, true, CancellationToken.None);
 
     /// <summary>
     /// Locks the key. If the key is already locked, it will wait indefinitely.
@@ -64,17 +65,17 @@ public sealed class KeyedLocker<TKey> where TKey : notnull
     /// <param name="key"></param>
     /// <returns></returns>
     public Task<IDisposable> LockAsync(TKey key) =>
-        InternalLockAsync(key, false, TimeSpan.Zero)!;
+        InternalLockAsync(key, false, CancellationToken.None)!;
 
     /// <summary>
-    /// Locks the key. If the key is already locked, it will wait until the timeout, then throw a TimeoutException.
+    /// Locks the key. If the key is already locked, it will wait until the cancellationToken, then throw a TimeoutException.
     /// </summary>
     /// <param name="key"></param>
-    /// <param name="timeout"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="TimeoutException"></exception>
-    public Task<IDisposable> LockAsync(TKey key, TimeSpan timeout) =>
-        InternalLockAsync(key, false, timeout)!;
+    public Task<IDisposable> LockAsync(TKey key, CancellationToken cancellationToken) =>
+        InternalLockAsync(key, false, cancellationToken)!;
 
     /// <summary>
     /// Tries to lock the key. If the key is already locked, it will return null.
@@ -82,13 +83,32 @@ public sealed class KeyedLocker<TKey> where TKey : notnull
     /// <param name="key"></param>
     /// <returns></returns>
     public Task<IDisposable?> TryLockAsync(TKey key) =>
-        InternalLockAsync(key, true, TimeSpan.Zero);
+        InternalLockAsync(key, true, CancellationToken.None);
 
+    public async Task WaitForReleaseAsync(TKey key, CancellationToken cancellationToken)
+    {
+        var item = TryGetItem(key);
+        if (item is null)
+            return;
+
+        //await InternalLockAsync(key, false, cancellationToken);
+        var locked = await InternalLockAsync(key, false, cancellationToken);
+        locked!.Dispose();
+    }
+
+    private LockedItem<TKey>? TryGetItem(TKey key)
+    {
+        lock (locker)
+        {
+            return lockers.TryGetValue(key, out var item) ? item : null;
+        }
+    }
     private LockedItem<TKey>? GetOrCreateItem(TKey key, bool throwIfExists)
     {
-        lock (lockers)
+        lock (locker)
         {
-            if (lockers.TryGetValue(key, out var item))
+            var item = TryGetItem(key);
+            if (item != null)
             {
                 if (throwIfExists)
                     return null;
@@ -102,39 +122,37 @@ public sealed class KeyedLocker<TKey> where TKey : notnull
             return item;
         }
     }
-    private LockedItem<TKey>? InternalLock(TKey key, bool throwIfExists, TimeSpan timeout)
+    private LockedItem<TKey>? InternalLock(TKey key, bool throwIfExists, CancellationToken cancellationToken)
     {
         var item = GetOrCreateItem(key, throwIfExists);
 
         if (item?.Semaphore is not null)
         {
-            if (timeout == TimeSpan.Zero)
+            try
             {
-                item.Semaphore.Wait();
+                item.Semaphore.Wait(cancellationToken);
             }
-            else if (!item.Semaphore.Wait(timeout))
+            finally
             {
                 item.DecrementCount();
-                return null;
             }
         }
 
         return item;
     }
-    private async Task<IDisposable?> InternalLockAsync(TKey key, bool throwIfExists, TimeSpan timeout)
+    private async Task<IDisposable?> InternalLockAsync(TKey key, bool throwIfExists, CancellationToken cancellationToken)
     {
         var item = GetOrCreateItem(key, throwIfExists);
 
         if (item?.Semaphore is not null)
         {
-            if (timeout == TimeSpan.Zero)
+            try
             {
-                await item.Semaphore.WaitAsync();
+                await item.Semaphore.WaitAsync(cancellationToken);
             }
-            else if (!await item.Semaphore.WaitAsync(timeout))
+            finally
             {
                 item.DecrementCount();
-                return null;
             }
         }
 

@@ -295,9 +295,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             }
         }
 
-        using var locker = cancellationToken == CancellationToken.None ?
-            await lockers.LockAsync(key) :
-            await Task.Run(async () => await lockers.LockAsync(key), cancellationToken);
+        await lockers.WaitForReleaseAsync(key, cancellationToken);
         return TryGet(key, out var x) ? (T?)x! : default;
     }
 

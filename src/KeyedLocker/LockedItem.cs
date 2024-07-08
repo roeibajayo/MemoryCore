@@ -11,31 +11,37 @@ internal sealed class LockedItem<TKey>(KeyedLocker<TKey> locker, TKey key) :
 
     public void IncrementCount()
     {
-        if (count == 1)
+        lock (locker)
         {
-            Semaphore = new SemaphoreSlim(0, 1);
-        }
+            if (count == 1)
+            {
+                Semaphore = new SemaphoreSlim(0, 1);
+            }
 
-        count++;
+            count++;
+        }
     }
 
     public void DecrementCount()
     {
-        count--;
-        Semaphore?.Release();
-
-        if (count == 1)
+        lock (locker)
         {
-            Semaphore?.Dispose();
-            Semaphore = null;
-            return;
-        }
+            count--;
+            Semaphore?.Release();
 
-        if (count == 0)
-        {
-            lock (locker.lockers)
+            if (count == 1)
             {
-                locker.lockers.Remove(key);
+                Semaphore?.Dispose();
+                Semaphore = null;
+                return;
+            }
+
+            if (count == 0)
+            {
+                lock (locker.lockers)
+                {
+                    locker.lockers.Remove(key);
+                }
             }
         }
     }
