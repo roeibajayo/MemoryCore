@@ -82,8 +82,8 @@ public sealed class KeyedLocker<TKey> where TKey : notnull
     /// </summary>
     /// <param name="key"></param>
     /// <returns></returns>
-    public Task<IDisposable?> TryLockAsync(TKey key) =>
-        InternalLockAsync(key, true, CancellationToken.None);
+    public Task<IDisposable?> TryLockAsync(TKey key, CancellationToken? cancellationToken = null) =>
+        InternalLockAsync(key, true, cancellationToken ?? CancellationToken.None);
 
     public async Task WaitForReleaseAsync(TKey key, CancellationToken cancellationToken)
     {

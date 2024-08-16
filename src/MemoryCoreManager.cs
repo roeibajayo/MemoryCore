@@ -226,7 +226,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration,
+    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan absoluteExpiration,
         CancellationToken? cancellationToken = null, bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         return await TryGetOrAddAsync(key, getValueFunction, forceSet,
@@ -248,7 +248,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan duration,
+    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan duration,
         CancellationToken? cancellationToken = null, TimeSpan? absoluteExpiration = null, bool forceSet = false,
         string[]? tags = null, bool persist = false)
     {
@@ -272,7 +272,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
         return item;
     }
-    private async Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, bool forceSet, Action<T> onAdd,
+    private async Task<T?> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, bool forceSet, Action<T> onAdd,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(key))
@@ -281,16 +281,16 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (!forceSet && TryGet(key, out T? item))
             return item;
 
-        var worker = await lockers.TryLockAsync(key);
+        var worker = await lockers.TryLockAsync(key, cancellationToken);
 
         if (worker != null)
         {
             using (worker)
             {
                 if (cancellationToken == CancellationToken.None)
-                    return await GetAndSetAsync(getValueFunction, onAdd);
+                    return await GetAndSetAsync(getValueFunction, cancellationToken, onAdd);
 
-                var task = Task.Run(async () => await GetAndSetAsync(getValueFunction, onAdd), cancellationToken);
+                var task = Task.Run(async () => await GetAndSetAsync(getValueFunction, cancellationToken, onAdd), cancellationToken);
                 return await task;
             }
         }
@@ -299,9 +299,11 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         return TryGet(key, out var x) ? (T?)x! : default;
     }
 
-    private async Task<T> GetAndSetAsync<T>(Func<Task<T>> getValueFunction, Action<T> onAdd)
+    private async Task<T> GetAndSetAsync<T>(Func<CancellationToken, Task<T>> getValueFunction,
+        CancellationToken cancellationToken,
+        Action<T> onAdd)
     {
-        var item = await getValueFunction();
+        var item = await getValueFunction(cancellationToken);
 
         if (item is not null)
             onAdd(item);

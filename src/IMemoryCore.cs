@@ -12,7 +12,7 @@ public interface IMemoryCore : IMemoryCache
     /// <summary>
     /// Add a new item to the cache with a sliding expiration.
     /// </summary>
-    void AddSliding(string key, object value, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null, 
+    void AddSliding(string key, object value, TimeSpan slidingExpiration, TimeSpan? absoluteExpiration = null,
         string[]? tags = null, bool persist = false);
 
     /// <summary>
@@ -70,7 +70,7 @@ public interface IMemoryCore : IMemoryCache
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    Task<T?> TryGetOrAddAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan absoluteExpiration,
+    Task<T?> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan absoluteExpiration,
         CancellationToken? cancellationToken = null, bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
@@ -84,7 +84,7 @@ public interface IMemoryCore : IMemoryCache
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<Task<T>> getValueFunction, TimeSpan slidingExpiration,
+    Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan slidingExpiration,
         CancellationToken? cancellationToken = null, TimeSpan? absoluteExpiration = null, bool forceSet = false,
         string[]? tags = null, bool persist = false);
 

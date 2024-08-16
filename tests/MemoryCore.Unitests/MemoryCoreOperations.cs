@@ -170,9 +170,19 @@ public class MemoryCoreOperations
         var execution = 0;
 
         //Act
-        await cache.TryGetOrAddAsync(key, async () => { execution++; await Task.Delay(100); return value; }, TimeSpan.FromMinutes(minutes), persist: true);
+        await cache.TryGetOrAddAsync(key, async () =>
+        {
+            execution++;
+            await Task.Delay(100);
+            return value;
+        }, TimeSpan.FromMinutes(minutes), persist: true);
         cache = new MemoryCoreManager();
-        var actualValue = await cache.TryGetOrAddAsync(key, async () => { execution++; await Task.Delay(100); return value; }, TimeSpan.FromMinutes(minutes), persist: true);
+        var actualValue = await cache.TryGetOrAddAsync(key, async () =>
+        {
+            execution++;
+            await Task.Delay(100);
+            return value;
+        }, TimeSpan.FromMinutes(minutes), persist: true);
 
         //Assert
         Assert.True(cache.Exists(key));
@@ -621,5 +631,28 @@ public class MemoryCoreOperations
 
         //Assert
         Assert.Empty(cache.entries);
+    }
+
+    [Fact]
+    public async Task CancellationToken_Cancled_StopWaiting()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        using var cts = new CancellationTokenSource();
+        using var cache = new MemoryCoreManager();
+
+        //Act and Assert
+        await Assert.ThrowsAsync<TaskCanceledException>(async () =>
+        {
+            cts.CancelAfter(1000);
+            _ = await cache.TryGetOrAddAsync(key, async (cancellationToken) =>
+            {
+                await Task.Delay(10000, cancellationToken);
+                return value;
+            }, TimeSpan.FromMinutes(minutes),
+                cancellationToken: cts.Token);
+        });
     }
 }
