@@ -2,7 +2,6 @@
 
 public static class IMemoryCoreExtentionsAsync
 {
-
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>

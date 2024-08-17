@@ -634,7 +634,7 @@ public class MemoryCoreOperations
     }
 
     [Fact]
-    public async Task CancellationToken_Cancled_StopWaiting()
+    public async Task CancellationToken_Cancled_StopWaiting_ThrowsExecption()
     {
         //Arrange
         var key = "key";
@@ -649,10 +649,32 @@ public class MemoryCoreOperations
             cts.CancelAfter(1000);
             _ = await cache.TryGetOrAddAsync(key, async (cancellationToken) =>
             {
-                await Task.Delay(10000, cancellationToken);
+                await Task.Delay(10000);
                 return value;
             }, TimeSpan.FromMinutes(minutes),
                 cancellationToken: cts.Token);
         });
+    }
+
+    [Fact]
+    public async Task CancellationToken_SuccessBeforeCancled_NoError()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        using var cts = new CancellationTokenSource();
+        using var cache = new MemoryCoreManager();
+
+        //Act
+        cts.CancelAfter(1000);
+        var returnedValue = await cache.TryGetOrAddAsync(key, async (cancellationToken) =>
+        {
+            await Task.Delay(100);
+            return value;
+        }, TimeSpan.FromMinutes(minutes), cancellationToken: cts.Token);
+
+        //Assert
+        Assert.Equal(value, returnedValue);
     }
 }

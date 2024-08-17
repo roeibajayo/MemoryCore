@@ -290,8 +290,24 @@ public sealed partial class MemoryCoreManager : IMemoryCore
                 if (cancellationToken == CancellationToken.None)
                     return await GetAndSetAsync(getValueFunction, cancellationToken, onAdd);
 
-                var task = Task.Run(async () => await GetAndSetAsync(getValueFunction, cancellationToken, onAdd), cancellationToken);
-                return await task;
+                var task = GetAndSetAsync(getValueFunction, cancellationToken, onAdd);
+                var cancellationTaskCts = new CancellationTokenSource();
+                cancellationToken.Register(cancellationTaskCts.Cancel);
+                var cancellationTask = Task.Run<T?>(async () =>
+                {
+                    await Task.Delay(Timeout.Infinite, cancellationTaskCts.Token);
+                    return default;
+                });
+                var completed = await Task.WhenAny(task, cancellationTask!);
+                cancellationTaskCts.Cancel();
+
+                if (completed.Exception is not null)
+                    throw completed.Exception;
+
+                if (completed.IsCanceled)
+                    throw new TaskCanceledException();
+
+                return task.Result;
             }
         }
 
