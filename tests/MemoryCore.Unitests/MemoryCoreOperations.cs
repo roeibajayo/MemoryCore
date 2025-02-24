@@ -333,7 +333,7 @@ public class MemoryCoreOperations
     }
 
     [Fact]
-    public void TryGetOrAdd_OnlyFirstExecuted_RetrunValue()
+    public void TryGetOrAdd_OnlyFirstExecuted_ReturnValue()
     {
         //Arrange
         var key = "key";
@@ -356,7 +356,7 @@ public class MemoryCoreOperations
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task TryGetOrAddAsyncParallel_OnlyFirstExecuted_RetrunValue(bool spread)
+    public async Task TryGetOrAddAsyncParallel_OnlyFirstExecuted_ReturnValue(bool spread)
     {
         //Arrange
         var key = "key";
@@ -397,7 +397,7 @@ public class MemoryCoreOperations
     }
 
     [Fact]
-    public async Task TryGetOrAddAsync_OnlyFirstExecuted_RetrunValue()
+    public async Task TryGetOrAddAsync_OnlyFirstExecuted_ReturnValue()
     {
         //Arrange
         var key = "key";
@@ -412,6 +412,27 @@ public class MemoryCoreOperations
 
         //Assert
         Assert.Equal(1, executions);
+        Assert.Equal(value, cache.Get<string>(key));
+        Assert.Equal(value, value1);
+        Assert.Equal(value, value2);
+    }
+    [Fact]
+    public async Task TryGetOrAddAsync_WaitForExpired_AllExecuted()
+    {
+        //Arrange
+        var key = "key";
+        var value = "ok";
+        var minutes = 5;
+        using var cache = new MemoryCoreManager();
+        var executions = 0;
+
+        //Act
+        var value1 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        cache.dateTimeOffsetProvider = new DateTimeOffsetProvider(TimeSpan.FromMinutes(minutes + 1));
+        var value2 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+
+        //Assert
+        Assert.Equal(2, executions);
         Assert.Equal(value, cache.Get<string>(key));
         Assert.Equal(value, value1);
         Assert.Equal(value, value2);
@@ -562,7 +583,7 @@ public class MemoryCoreOperations
     }
 
     [Fact]
-    public async Task Exception_RemoveTage_NoError()
+    public async Task Exception_RemoveTag_NoError()
     {
         //Arrange
         var tag = "exists";
@@ -634,7 +655,7 @@ public class MemoryCoreOperations
     }
 
     [Fact]
-    public async Task CancellationToken_Cancled_StopWaiting_ThrowsExecption()
+    public async Task CancellationToken_Canceled_StopWaiting_ThrowsException()
     {
         //Arrange
         var key = "key";
@@ -657,7 +678,7 @@ public class MemoryCoreOperations
     }
 
     [Fact]
-    public async Task CancellationToken_SuccessBeforeCancled_NoError()
+    public async Task CancellationToken_SuccessBeforeCanceled_NoError()
     {
         //Arrange
         var key = "key";

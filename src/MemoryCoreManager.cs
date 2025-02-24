@@ -1,5 +1,4 @@
-﻿using MemoryCore.KeyedLocker;
-using MemoryCore.Persistent;
+﻿using MemoryCore.Persistent;
 using System.Collections.Concurrent;
 
 namespace MemoryCore;
@@ -11,7 +10,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
     internal readonly StringComparison comparer;
     internal readonly ConcurrentDictionary<string, MemoryEntry> entries;
-    internal readonly KeyedLocker<string> lockers = new();
+    internal readonly ConcurrentDictionary<string, object> executings = [];
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
     internal readonly Timer timer;
     internal readonly IPersistedStore persistedStore;
@@ -281,50 +280,57 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         if (!forceSet && TryGet(key, out T? item))
             return item;
 
-        var worker = await lockers.TryLockAsync(key, cancellationToken);
+        var withCancellation = cancellationToken != CancellationToken.None;
+        var task = GetOrSetExecutingTask(key, getValueFunction, cancellationToken);
 
-        if (worker != null)
+        var completed = task;
+        if (withCancellation)
         {
-            using (worker)
+            using var cancellationTaskCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            completed = await Task.WhenAny([task, Task.Run<T?>(async () =>
             {
-                if (cancellationToken == CancellationToken.None)
-                    return await GetAndSetAsync(getValueFunction, cancellationToken, onAdd);
-
-                var task = GetAndSetAsync(getValueFunction, cancellationToken, onAdd);
-                var cancellationTaskCts = new CancellationTokenSource();
-                cancellationToken.Register(cancellationTaskCts.Cancel);
-                var cancellationTask = Task.Run<T?>(async () =>
-                {
-                    await Task.Delay(Timeout.Infinite, cancellationTaskCts.Token);
-                    return default;
-                });
-                var completed = await Task.WhenAny(task, cancellationTask!);
-                cancellationTaskCts.Cancel();
-
-                if (completed.Exception is not null)
-                    throw completed.Exception;
-
-                if (completed.IsCanceled)
-                    throw new TaskCanceledException();
-
-                return task.Result;
-            }
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return default;
+            })!]);
+            cancellationTaskCts.Cancel();
         }
+        else
+        {
+            await completed;
+        }
+        executings.TryRemove(key, out _);
 
-        await lockers.WaitForReleaseAsync(key, cancellationToken);
-        return TryGet(key, out var x) ? (T?)x! : default;
+        if (completed.Exception is not null)
+            throw completed.Exception;
+
+        if (completed.IsCanceled)
+            throw new TaskCanceledException();
+
+        var result = completed.Result;
+
+        if (result is not null)
+            onAdd(result);
+
+        return result;
     }
 
-    private async Task<T> GetAndSetAsync<T>(Func<CancellationToken, Task<T>> getValueFunction,
-        CancellationToken cancellationToken,
-        Action<T> onAdd)
+    private Task<T> GetOrSetExecutingTask<T>(string key,
+        Func<CancellationToken, Task<T>> getValueFunction,
+        CancellationToken cancellationToken)
     {
-        var item = await getValueFunction(cancellationToken);
+#if NET6_0_OR_GREATER
+        return (Task<T>)executings.GetOrAdd(key, _ => getValueFunction(cancellationToken));
+#else
+        if (executings.TryGetValue(key, out var storedTask))
+        {
+            var result = (Task<T>)storedTask;
+            return result;
+        }
 
-        if (item is not null)
-            onAdd(item);
-
-        return item;
+        var task = getValueFunction(cancellationToken);
+        executings[key] = task;
+        return task;
+#endif
     }
 
     /// <summary>
