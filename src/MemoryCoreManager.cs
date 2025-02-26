@@ -14,6 +14,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
     internal readonly Timer timer;
     internal readonly IPersistedStore persistedStore;
+    private readonly object asyncDictionaryLocker = new();
 
     public readonly string Name;
 
@@ -293,11 +294,13 @@ public sealed partial class MemoryCoreManager : IMemoryCore
                 return default;
             })!]);
             cancellationTaskCts.Cancel();
+            await completed;
         }
         else
         {
             await completed;
         }
+
         executings.TryRemove(key, out _);
 
         if (completed.Exception is not null)
@@ -318,8 +321,10 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         Func<CancellationToken, Task<T>> getValueFunction,
         CancellationToken cancellationToken)
     {
+        lock (asyncDictionaryLocker)
+        {
 #if NET6_0_OR_GREATER
-        return (Task<T>)executings.GetOrAdd(key, _ => getValueFunction(cancellationToken));
+            return (Task<T>)executings.GetOrAdd(key, _ => getValueFunction(cancellationToken));
 #else
         if (executings.TryGetValue(key, out var storedTask))
         {
@@ -328,9 +333,10 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         }
 
         var task = getValueFunction(cancellationToken);
-        executings[key] = task;
+        executings.TryAdd(key, task);
         return task;
 #endif
+        }
     }
 
     /// <summary>

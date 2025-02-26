@@ -365,6 +365,7 @@ public class MemoryCoreOperations
         using var cache = new MemoryCoreManager();
         var tries = 30;
         var executions = 0;
+        var locker = new object();
         var random = new Random();
         Task<string?>[] tasks = [];
 
@@ -374,11 +375,16 @@ public class MemoryCoreOperations
             tasks = Enumerable.Range(0, tries)
                 .Select(async x =>
                 {
-                    if (spread) await Task.Delay(random.Next(500));
+                    if (spread)
+                        await Task.Delay(random.Next(100, 300));
+
                     return await cache.TryGetOrAddAsync(key, async () =>
                     {
-                        await Task.Delay(random.Next(500));
-                        executions++;
+                        await Task.Delay(random.Next(300, 500));
+
+                        lock (locker)
+                            executions++;
+
                         return value;
                     }, TimeSpan.FromMinutes(minutes));
                 })
@@ -405,10 +411,24 @@ public class MemoryCoreOperations
         var minutes = 5;
         using var cache = new MemoryCoreManager();
         var executions = 0;
+        var locker = new object();
 
         //Act
-        var value1 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
-        var value2 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var value1 = await cache.TryGetOrAddAsync(key, async () =>
+        {
+            await Task.Delay(300);
+            lock (locker)
+                executions++;
+            return value;
+        }, TimeSpan.FromMinutes(minutes));
+
+        var value2 = await cache.TryGetOrAddAsync(key, async () =>
+        {
+            await Task.Delay(300);
+            lock (locker)
+                executions++;
+            return value;
+        }, TimeSpan.FromMinutes(minutes));
 
         //Assert
         Assert.Equal(1, executions);
@@ -427,9 +447,19 @@ public class MemoryCoreOperations
         var executions = 0;
 
         //Act
-        var value1 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+        var value1 = await cache.TryGetOrAddAsync(key, async () =>
+        {
+            await Task.Delay(300); executions++;
+            return value;
+        }, TimeSpan.FromMinutes(minutes));
+
         cache.dateTimeOffsetProvider = new DateTimeOffsetProvider(TimeSpan.FromMinutes(minutes + 1));
-        var value2 = await cache.TryGetOrAddAsync(key, async () => { await Task.Delay(300); executions++; return value; }, TimeSpan.FromMinutes(minutes));
+
+        var value2 = await cache.TryGetOrAddAsync(key, async () =>
+        {
+            await Task.Delay(300); executions++;
+            return value;
+        }, TimeSpan.FromMinutes(minutes));
 
         //Assert
         Assert.Equal(2, executions);

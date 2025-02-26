@@ -10,7 +10,7 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 ✔ Support for joint execution for GetOrSetAsync methods, so only 1 runs concurrently. 🔥
 
-✔ Support for IMemoryCahce intrerface.
+✔ Support for IMemoryCache interface.
 
 ✔ Dependency Injection ready.
 
@@ -24,16 +24,16 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 ## Benchmarks MemoryCore (1.5.0) vs System.Runtime.Caching (8.0.0):
 
-|             Method |      Mean |    Error |   StdDev | Allocated |
+| Method             | Mean      | Error    | StdDev   | Allocated |
 |------------------- |----------:|---------:|---------:|----------:|
-|     MemoryCore_Add |  52.32 ns | 1.036 ns | 1.383 ns |      80 B |
-|    MemoryCache_Add | 332.24 ns | 6.186 ns | 5.786 ns |     272 B |
-|                                                                  |
-|     MemoryCore_Get |  22.03 ns | 0.484 ns | 0.595 ns |         - |
-|    MemoryCache_Get |  98.35 ns | 1.961 ns | 2.685 ns |      32 B |
-|                                                                  |
-|  MemoryCore_Exists |  21.95 ns | 0.376 ns | 0.334 ns |         - |
-| MemoryCache_Exists | 329.76 ns | 5.193 ns | 4.858 ns |     752 B |
+| MemoryCore_Add     |  53.59 ns | 0.992 ns | 1.887 ns |      80 B |
+| MemoryCache_Add    | 321.22 ns | 2.066 ns | 1.831 ns |     272 B |
+|                    |           |          |          |           |
+| MemoryCore_Get     |  21.14 ns | 0.289 ns | 0.270 ns |         - |
+| MemoryCache_Get    |  85.09 ns | 1.751 ns | 2.621 ns |      32 B |
+|                    |           |          |          |           |
+| MemoryCore_Exists  |  20.99 ns | 0.268 ns | 0.251 ns |         - |
+| MemoryCache_Exists | 340.56 ns | 6.661 ns | 6.840 ns |     752 B |
 
 ## Install & Registering:
 
@@ -45,7 +45,7 @@ Or via the .NET Core command line interface:
 
     dotnet add package MemoryCore
     
-then register the required services easly:
+then register the required services easily:
 
 ```csharp
 services.AddMemoryCore();
