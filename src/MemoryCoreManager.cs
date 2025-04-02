@@ -285,23 +285,28 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         var task = GetOrSetExecutingTask(key, getValueFunction, cancellationToken);
 
         var completed = task;
-        if (withCancellation)
+        try
         {
-            using var cancellationTaskCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            completed = await Task.WhenAny([task, Task.Run<T?>(async () =>
+            if (withCancellation)
             {
-                await Task.Delay(Timeout.Infinite, cancellationToken);
-                return default;
-            })!]);
-            cancellationTaskCts.Cancel();
-            await completed;
+                using var cancellationTaskCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                completed = await Task.WhenAny([task, Task.Run<T?>(async () =>
+                {
+                    await Task.Delay(Timeout.Infinite, cancellationToken);
+                    return default;
+                })!]);
+                cancellationTaskCts.Cancel();
+                await completed;
+            }
+            else
+            {
+                await completed;
+            }
         }
-        else
+        finally
         {
-            await completed;
+            executings.TryRemove(key, out _);
         }
-
-        executings.TryRemove(key, out _);
 
         if (completed.Exception is not null)
             throw completed.Exception;
