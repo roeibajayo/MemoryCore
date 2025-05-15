@@ -215,7 +215,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
+    public T TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
         bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         return TryGetOrAdd(key, getValueFunction, forceSet, item =>
@@ -226,7 +226,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan absoluteExpiration,
+    public async Task<T> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan absoluteExpiration,
         CancellationToken? cancellationToken = null, bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         return await TryGetOrAddAsync(key, getValueFunction, forceSet,
@@ -237,7 +237,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration,
+    public T TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan duration,
         TimeSpan? absoluteExpiration = null, bool forceSet = false, string[]? tags = null, bool persist = false)
     {
         return TryGetOrAdd(key, getValueFunction, forceSet, item =>
@@ -248,7 +248,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    public async Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan duration,
+    public async Task<T> TryGetOrAddSlidingAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan duration,
         CancellationToken? cancellationToken = null, TimeSpan? absoluteExpiration = null, bool forceSet = false,
         string[]? tags = null, bool persist = false)
     {
@@ -257,13 +257,13 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             cancellationToken ?? CancellationToken.None);
     }
 
-    private T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, bool forceSet, Action<T> onAdd)
+    private T TryGetOrAdd<T>(string key, Func<T> getValueFunction, bool forceSet, Action<T> onAdd)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
         if (!forceSet && TryGet(key, out T? item))
-            return item;
+            return item!;
 
         item = getValueFunction();
 
@@ -272,14 +272,14 @@ public sealed partial class MemoryCoreManager : IMemoryCore
 
         return item;
     }
-    private async Task<T?> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, bool forceSet, Action<T> onAdd,
+    private async Task<T> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, bool forceSet, Action<T> onAdd,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(key))
             throw new ArgumentNullException(nameof(key));
 
         if (!forceSet && TryGet(key, out T? item))
-            return item;
+            return item!;
 
         var withCancellation = cancellationToken != CancellationToken.None;
         var task = GetOrSetExecutingTask(key, getValueFunction, cancellationToken);

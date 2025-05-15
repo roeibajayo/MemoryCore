@@ -63,28 +63,28 @@ public interface IMemoryCore : IMemoryCache
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    T? TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
+    T TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
         bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    Task<T?> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan absoluteExpiration,
+    Task<T> TryGetOrAddAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan absoluteExpiration,
         CancellationToken? cancellationToken = null, bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    T? TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan slidingExpiration,
+    T TryGetOrAddSliding<T>(string key, Func<T> getValueFunction, TimeSpan slidingExpiration,
         TimeSpan? absoluteExpiration = null, bool forceSet = false, string[]? tags = null, bool persist = false);
 
     /// <summary>
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
-    Task<T?> TryGetOrAddSlidingAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan slidingExpiration,
+    Task<T> TryGetOrAddSlidingAsync<T>(string key, Func<CancellationToken, Task<T>> getValueFunction, TimeSpan slidingExpiration,
         CancellationToken? cancellationToken = null, TimeSpan? absoluteExpiration = null, bool forceSet = false,
         string[]? tags = null, bool persist = false);
 
