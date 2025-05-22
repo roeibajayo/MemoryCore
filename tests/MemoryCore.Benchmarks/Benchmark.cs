@@ -1,13 +1,11 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BitFaster.Caching.Lru;
-using System.Runtime.Caching;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace MemoryCore.Benchmarks;
 
 [MemoryDiagnoser(false)]
-[RankColumn]
 [ShortRunJob]
-[MinColumn, MaxColumn, MedianColumn]
 [MarkdownExporterAttribute.GitHub]
 public class Benchmark
 {
@@ -18,12 +16,12 @@ public class Benchmark
     [GlobalSetup]
     public void Setup()
     {
-        memoryCache = new MemoryCache("global");
+        memoryCache = new MemoryCache(new MemoryCacheOptions());
         memoryCore = new MemoryCoreManager();
         lur = new ConcurrentLru<string, object>(128);
 
         memoryCore.Add("global-key", "value", TimeSpan.FromMinutes(10));
-        memoryCache.Add("global-key", "value", DateTimeOffset.Now.AddMinutes(10));
+        memoryCache.Set("global-key", "value", DateTimeOffset.Now.AddMinutes(10));
         lur.AddOrUpdate("global-key", "value");
     }
 
@@ -33,9 +31,9 @@ public class Benchmark
         memoryCore!.Add("key-for-add", "value", TimeSpan.FromMinutes(1));
     }
     [Benchmark]
-    public bool MemoryCache_Add()
+    public string MemoryCache_Add()
     {
-        return memoryCache!.Add("key-for-add", "value", DateTimeOffset.Now.AddMinutes(1));
+        return memoryCache!.Set("key-for-add", "value", DateTimeOffset.Now.AddMinutes(1));
     }
     [Benchmark]
     public void ConcurrentLru_Add()
@@ -51,7 +49,7 @@ public class Benchmark
     [Benchmark]
     public string MemoryCache_Get()
     {
-        return (string)memoryCache!.Get("global-key");
+        return (string)memoryCache!.Get("global-key")!;
     }
     [Benchmark]
     public string? ConcurrentLru_Get()
@@ -69,7 +67,7 @@ public class Benchmark
     [Benchmark]
     public bool MemoryCache_Exists()
     {
-        return memoryCache!.Any(x => x.Key == "global-key");
+        return memoryCache!.TryGetValue("global-key", out _);
     }
     [Benchmark]
     public bool ConcurrentLru_Exists()
@@ -83,9 +81,9 @@ public class Benchmark
         memoryCore!.Remove("global-key");
     }
     [Benchmark]
-    public object MemoryCache_Remove()
+    public void MemoryCache_Remove()
     {
-        return memoryCache!.Remove("global-key");
+        memoryCache!.Remove("global-key");
     }
     [Benchmark]
     public bool ConcurrentLru_Remove()
