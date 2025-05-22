@@ -2,7 +2,7 @@
 
 namespace MemoryCore;
 
-public static class IMemoryCoreExtentions
+public static class IMemoryCoreExtensions
 {
     /// <summary>
     /// Add item to cache with absolute expiration.
@@ -42,14 +42,14 @@ public static class IMemoryCoreExtentions
     }
 
     /// <summary>
-    /// Remove all items that match the given <paramref name="pattren"/>.
+    /// Remove all items that match the given <paramref name="pattern"/>.
     /// </summary>
-    public static void Remove(this IMemoryCore cache, Regex pattren)
+    public static void Remove(this IMemoryCore cache, Regex pattern)
     {
-        if (pattren is null)
-            throw new ArgumentNullException(nameof(pattren));
+        if (pattern is null)
+            throw new ArgumentNullException(nameof(pattern));
 
-        var keys = cache.GetKeys().Where(key => pattren.IsMatch(key));
+        var keys = cache.GetKeys().Where(key => pattern.IsMatch(key));
         Remove(cache, keys);
     }
 

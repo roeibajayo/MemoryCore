@@ -6,7 +6,7 @@ namespace MemoryCore;
 public sealed partial class MemoryCoreManager : IMemoryCore
 {
     internal const string DEFAULT_NAME = "MemoryCoreCache";
-    private const int clearInterval = 20 * 1000;
+    private const int CLEAR_INTERVAL = 20 * 1000;
 
     internal readonly StringComparison comparer;
     internal readonly ConcurrentDictionary<string, MemoryEntry> entries;
@@ -37,7 +37,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
         var comparer = FromComparison(stringComparison);
 #endif
         entries = new(comparer: comparer);
-        timer = new((state) => ClearExpired(), null, clearInterval, clearInterval);
+        timer = new((state) => ClearExpired(), null, CLEAR_INTERVAL, CLEAR_INTERVAL);
         this.persistedStore = persistedStore ?? new JsonPersistedStore();
         LoadPersistedEntries();
     }

@@ -2,7 +2,7 @@
 
 namespace MemoryCore;
 
-public static class IMemoryCoreExtentionsTags
+public static class IMemoryCoreExtensionsTags
 {
     /// <summary>
     /// Remove all items that match any tag that starts with <paramref name="prefix"/>.

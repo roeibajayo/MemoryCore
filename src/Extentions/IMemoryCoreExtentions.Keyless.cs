@@ -1,6 +1,6 @@
 ﻿namespace MemoryCore;
 
-public static class IMemoryCoreExtentionsSecured
+public static class IMemoryCoreExtensionsSecured
 {
     private const string SECURED_PREFIX_KEY = "__MEMORYCORE_";
 
