@@ -63,6 +63,7 @@ public interface IMemoryCore : IMemoryCache
     /// Try to get an item from the cache, or set it if it doesn't exist.
     /// </summary>
     /// <returns>The item from the cache, or the result of the function.</returns>
+    /// <remarks>Use GetOrAdd instead.</remarks>
     T TryGetOrAdd<T>(string key, Func<T> getValueFunction, TimeSpan absoluteExpiration,
         bool forceSet = false, string[]? tags = null, bool persist = false);
 

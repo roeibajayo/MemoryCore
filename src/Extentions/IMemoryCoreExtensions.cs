@@ -56,12 +56,12 @@ public static class IMemoryCoreExtensions
     /// <summary>
     /// Remove all keys that starts with <paramref name="prefix"/>.
     /// </summary>
-    public static void RemoveByPrefix(this IMemoryCore cache, string prefix)
+    public static void RemoveByPrefix(this IMemoryCore cache, string prefix, StringComparison stringComparison = StringComparison.Ordinal)
     {
         if (prefix is null)
             throw new ArgumentNullException(nameof(prefix));
 
-        var keys = cache.GetKeys().Where(key => key.StartsWith(prefix));
+        var keys = cache.GetKeys().Where(key => key.StartsWith(prefix, stringComparison));
         Remove(cache, keys);
     }
 

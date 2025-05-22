@@ -1,4 +1,6 @@
-﻿namespace MemoryCore.Persistent;
+﻿using MemoryCore.Persistent;
+
+namespace MemoryCore;
 
 public interface IPersistedStore
 {

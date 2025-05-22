@@ -8,6 +8,7 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     {
         return TryGet(key.ToString()!, out value);
     }
+
     public ICacheEntry CreateEntry(object key)
     {
         return new MemoryEntry
@@ -15,10 +16,12 @@ public sealed partial class MemoryCoreManager : IMemoryCore
             Key = key.ToString()!
         };
     }
+
     public void Remove(object key)
     {
         Remove(key.ToString()!);
     }
+
     public void Dispose()
     {
         entries.Clear();

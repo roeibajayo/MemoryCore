@@ -22,18 +22,21 @@ High-performance yet easy to use memory manager implementation in .NET.
 
 ✔ Developers friendly ❤️ Easy to use.
 
-## Benchmarks MemoryCore (1.5.0) vs System.Runtime.Caching (8.0.0):
+## Benchmarks MemoryCore (1.6.3) vs Microsoft.Extensions.Caching.Memory (9.0.5) on .NET9:
 
-| Method             | Mean      | Error    | StdDev   | Allocated |
-|------------------- |----------:|---------:|---------:|----------:|
-| MemoryCore_Add     |  53.59 ns | 0.992 ns | 1.887 ns |      80 B |
-| MemoryCache_Add    | 321.22 ns | 2.066 ns | 1.831 ns |     272 B |
-|                    |           |          |          |           |
-| MemoryCore_Get     |  21.14 ns | 0.289 ns | 0.270 ns |         - |
-| MemoryCache_Get    |  85.09 ns | 1.751 ns | 2.621 ns |      32 B |
-|                    |           |          |          |           |
-| MemoryCore_Exists  |  20.99 ns | 0.268 ns | 0.251 ns |         - |
-| MemoryCache_Exists | 340.56 ns | 6.661 ns | 6.840 ns |     752 B |
+| Method             | Mean      | Allocated | Speedup |
+|------------------- |----------:|----------:|--------:|
+| MemoryCore_Add     |  35.76 ns |      80 B |    4.8x |
+| Microsoft_Add      | 170.81 ns |     104 B | 	       |
+|                    |           |           | 	       | 
+| MemoryCore_Get     |  10.91 ns |         - | 	  2.4x |  
+| Microsoft_Get      |  26.39 ns |         - | 	       | 
+|                    |           |           | 	       | 
+| MemoryCore_Exists  |  10.98 ns |         - | 	  2.4x | 
+| Microsoft_Exists   |  26.47 ns |         - | 	       | 
+|                    |           |           | 	       | 
+| MemoryCore_Remove  |  18.50 ns |         - | 	  2.2x | 
+| Microsoft_Remove   |  41.52 ns |         - | 	       | 
 
 ## Install & Registering:
 

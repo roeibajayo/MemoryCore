@@ -1,4 +1,5 @@
-﻿using MemoryCore.Persistent;
+﻿using MemoryCore.Interfaces;
+using MemoryCore.Persistent;
 using System.Collections.Concurrent;
 
 namespace MemoryCore;
@@ -14,8 +15,11 @@ public sealed partial class MemoryCoreManager : IMemoryCore
     internal IDateTimeOffsetProvider dateTimeOffsetProvider = new DateTimeOffsetProvider();
     internal readonly Timer timer;
     internal readonly IPersistedStore persistedStore;
+#if NET9_0_OR_GREATER
+    private readonly Lock asyncDictionaryLocker = new();
+#else
     private readonly object asyncDictionaryLocker = new();
-
+#endif
     public readonly string Name;
 
     public MemoryCoreManager() : this(StringComparison.Ordinal) { }

@@ -1,12 +1,7 @@
-﻿using MemoryCore.Utils;
+﻿using MemoryCore.Interfaces;
+using MemoryCore.Utils;
 
 namespace MemoryCore;
-
-internal interface IDateTimeOffsetProvider
-{
-    public long Now { get; }
-    public DateTimeOffset NowOffset { get; }
-}
 
 internal sealed class DateTimeOffsetProvider : IDateTimeOffsetProvider
 {

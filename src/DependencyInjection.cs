@@ -16,7 +16,12 @@ public static class DependencyInjection
     public static IServiceCollection AddMemoryCore(this IServiceCollection services,
         StringComparison keysComparison = StringComparison.Ordinal)
     {
-        if (!services.Any(s => s.ServiceType == typeof(IPersistedStore)))
+        var typeofIMemoryCore = typeof(IMemoryCore);
+        if (services.Any(s => s.ServiceType == typeofIMemoryCore))
+            return services;
+
+        var typeofIPersistedStore = typeof(IPersistedStore);
+        if (!services.Any(s => s.ServiceType == typeofIPersistedStore))
             services.AddSingleton<IPersistedStore, JsonPersistedStore>();
 
         services.RemoveAll<IMemoryCore>();

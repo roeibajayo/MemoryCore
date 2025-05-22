@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace MemoryCore.Unitests;
+﻿namespace MemoryCore.Unitests;
 
 public class MemoryCoreOperations
 {
